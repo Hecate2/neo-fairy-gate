@@ -4,6 +4,18 @@
  */
 const menuList = [
   {
+    title: "contract",
+    path: "/contract",
+    icon: "form",
+    roles:["admin","editor","guest"]
+  },
+  {
+    title: "test",
+    path: "/test",
+    icon: "caret-right",
+    roles:["admin","editor","guest"]
+  },
+  {
     title: "首页",
     path: "/dashboard",
     icon: "home",

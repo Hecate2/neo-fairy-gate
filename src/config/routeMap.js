@@ -1,5 +1,7 @@
 import Loadable from 'react-loadable';
 import Loading from '@/components/Loading'
+const Contract = Loadable({loader: () => import(/*webpackChunkName:'Dashboard'*/'@/views/contract'),loading: Loading});
+const Test = Loadable({loader: () => import(/*webpackChunkName:'Dashboard'*/'@/views/test'),loading: Loading});
 const Dashboard = Loadable({loader: () => import(/*webpackChunkName:'Dashboard'*/'@/views/dashboard'),loading: Loading});
 const Doc = Loadable({loader: () => import(/*webpackChunkName:'Doc'*/'@/views/doc'),loading: Loading});
 const Guide = Loadable({loader: () => import(/*webpackChunkName:'Guide'*/'@/views/guide'),loading: Loading});
@@ -26,6 +28,8 @@ const About = Loadable({loader: () => import(/*webpackChunkName:'About'*/'@/view
 const Bug = Loadable({loader: () => import(/*webpackChunkName:'Bug'*/'@/views/bug'),loading: Loading});
 
 export default [
+  { path: "/contract", component: Contract, roles: ["admin","editor","guest"] },
+  { path: "/test", component: Test, roles: ["admin","editor","guest"] },
   { path: "/dashboard", component: Dashboard, roles: ["admin","editor","guest"] },
   { path: "/doc", component: Doc, roles: ["admin","editor","guest"] },
   { path: "/guide", component: Guide, roles: ["admin","editor"] },
