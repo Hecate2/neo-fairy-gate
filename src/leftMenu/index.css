@@ -1,0 +1,15 @@
+.LeftMenu{
+    grid-area: menu;
+    color: indigo;
+    background-color: #c1a7ca;
+    font-size: 22px;
+    width: max-content;
+    height: auto;
+}
+.LeftMenuItem{
+    font-family: monospace;
+    align-content: center;
+    padding: 0.5em;
+    padding-right: 1em;
+    padding-left: 0.7em;
+}

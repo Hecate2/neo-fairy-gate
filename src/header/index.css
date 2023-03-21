@@ -1,8 +1,9 @@
-* {
+header *{
     margin: 0.1em;
 }
-
 header{
+    height: max-content;
+    grid-area: header;
     background-color: cadetblue;
 }
 

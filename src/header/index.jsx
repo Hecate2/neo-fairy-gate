@@ -1,5 +1,5 @@
 import React, {Component} from "react";
-import {SwapLeftOutlined, SwapRightOutlined} from "@ant-design/icons";
+import {SwapOutlined} from "@ant-design/icons";
 import fetchWithTimeout from "../utils/fetchWithTimeout";
 import "./index.css"
 
@@ -106,7 +106,7 @@ class ServerSelect extends Component {
         this.testButton.current.disabled = false;
     }
 
-    showHeader(){ this.header.current.style.height = "auto"; }
+    showHeader(){ this.header.current.style.overflow = "unset"; this.header.current.style.height = "max-content"; }
     hideHeader(){ this.header.current.style.overflow = "hidden"; this.header.current.style.height = this.headerHideHeight; }
 
     hideOrShowHeader(){
@@ -129,19 +129,18 @@ class ServerSelect extends Component {
                     <div style={{textAlign: "center", backgroundColor: colorGreen}}>↑↑Active↑↑</div>
                     <div><input style={{textAlign: "center"}} ref={this.activeServerComment} type={"text"} defaultValue={"/*mainnet*/"}/></div>
                 </span>
-                <span style={{verticalAlign: "center", alignContent: "center"}}>
+                <span>
                     <div style={{textAlign: "center"}}>
-                        <SwapLeftOutlined/>
+                        {/*<SwapLeftOutlined/>*/}
                         <button style={{textAlign: "center"}} ref={this.testButton} onClick={this.testServer}>TEST!</button>
-                        <SwapRightOutlined/>
+                        {/*<SwapRightOutlined/>*/}
                     </div>
-                    <div><br/></div>
+                    <div style={{textAlign: "center"}}><SwapOutlined/></div>
                     <div style={{textAlign: "center"}}>
-                        <SwapRightOutlined/>
+                        <SwapOutlined/>
                         <button style={{textAlign: "center"}} ref={this.switchButton} onClick={this.switchServer}>SWITCH</button>
-                        <SwapLeftOutlined/>
+                        <SwapOutlined/>
                     </div>
-                    {/*<div style={{textAlign: "center"}}><SwapOutlined/></div>*/}
                 </span>
                 <span className={"server"} style={{display: "inline-block"}}>
                     <div><input style={{backgroundColor: colorYellow}} ref={this.standbyServer} onBlur={this.onStandbyServerTextChange} type={"text"} defaultValue={this.state.standbyServer.toString()}/></div>
