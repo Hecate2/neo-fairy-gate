@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/neo-fairy-gate/static/css/main.d220a7d7.css",
-    "main.js": "/neo-fairy-gate/static/js/main.7ffc3202.js",
+    "main.css": "/neo-fairy-gate/static/css/main.5d6996c3.css",
+    "main.js": "/neo-fairy-gate/static/js/main.2aa50f1f.js",
     "static/js/787.6edb2836.chunk.js": "/neo-fairy-gate/static/js/787.6edb2836.chunk.js",
     "index.html": "/neo-fairy-gate/index.html",
-    "main.d220a7d7.css.map": "/neo-fairy-gate/static/css/main.d220a7d7.css.map",
-    "main.7ffc3202.js.map": "/neo-fairy-gate/static/js/main.7ffc3202.js.map",
+    "main.5d6996c3.css.map": "/neo-fairy-gate/static/css/main.5d6996c3.css.map",
+    "main.2aa50f1f.js.map": "/neo-fairy-gate/static/js/main.2aa50f1f.js.map",
     "787.6edb2836.chunk.js.map": "/neo-fairy-gate/static/js/787.6edb2836.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.d220a7d7.css",
-    "static/js/main.7ffc3202.js"
+    "static/css/main.5d6996c3.css",
+    "static/js/main.2aa50f1f.js"
   ]
 }
