@@ -1,5 +1,7 @@
-import React, {Component, useEffect} from "react";
-import {SwapLeftOutlined, SwapRightOutlined, SwapOutlined} from "@ant-design/icons";
+import React, {Component} from "react";
+import {SwapLeftOutlined, SwapRightOutlined} from "@ant-design/icons";
+import fetchWithTimeout from "../utils/fetchWithTimeout";
+import "./index.css"
 
 let colorWhite = "#FFFFFF";
 let colorBlack = "#000000";
@@ -10,15 +12,22 @@ let colorRed = "#BF2930";
 class ServerSelect extends Component {
     constructor(props) {
         super(props);
+        this.header = React.createRef();
         this.activeServer = React.createRef();
         this.activeServerComment = React.createRef();
         this.standbyServer = React.createRef();
         this.standbyServerComment = React.createRef();
+        this.switchButton = React.createRef();
         this.testButton = React.createRef();
         this.state = {
             activeServer: new URL("http://localhost:16868"),
-            standbyServer: new URL("http://localhost:26868")
+            standbyServer: new URL("http://localhost:26868"),
+            runningTests: []
         }
+        this.headerHideHeight = "2.4em";
+        this.hideHeader = this.hideHeader.bind(this)
+        this.showHeader = this.showHeader.bind(this)
+        this.hideOrShowHeader = this.hideOrShowHeader.bind(this)
         this.switchServer = this.switchServer.bind(this)
         this.testServer = this.testServer.bind(this)
         this.onActiveServerTextChange = this.onActiveServerTextChange.bind(this)
@@ -63,12 +72,13 @@ class ServerSelect extends Component {
 
     async testServer(){
         this.testButton.current.disabled = true;
+        this.switchButton.current.disabled = true;
         this.testButton.current.innerHTML = "TEST...";
         this.activeServerComment.current.style.backgroundColor = colorWhite;
         this.standbyServerComment.current.style.backgroundColor = colorWhite;
         let _this = this;
         await Promise.all([
-            fetch(this.activeServer.current.value, {mode: 'cors'}).then(
+            fetchWithTimeout(this.activeServer.current.value, {mode: 'cors'}).then(
                 function (resolve){
                     if(resolve.status === 200 && resolve.ok)
                         _this.activeServerComment.current.style.backgroundColor = colorGreen;
@@ -79,7 +89,7 @@ class ServerSelect extends Component {
                     _this.activeServerComment.current.style.backgroundColor = colorRed;
                 }
             ),
-            fetch(this.standbyServer.current.value, {mode: 'cors'}).then(
+            fetchWithTimeout(this.standbyServer.current.value, {mode: 'cors'}).then(
                 function (resolve){
                     if(resolve.status === 200 && resolve.ok)
                         _this.standbyServerComment.current.style.backgroundColor = colorGreen;
@@ -92,7 +102,18 @@ class ServerSelect extends Component {
             )
         ]);
         this.testButton.current.innerHTML = "TEST!";
+        this.switchButton.current.disabled = false;
         this.testButton.current.disabled = false;
+    }
+
+    showHeader(){ this.header.current.style.height = "auto"; }
+    hideHeader(){ this.header.current.style.overflow = "hidden"; this.header.current.style.height = this.headerHideHeight; }
+
+    hideOrShowHeader(){
+        if (this.header.current.style.height !== this.headerHideHeight)
+            this.hideHeader();
+        else
+            this.showHeader();
     }
 
     componentDidMount(){
@@ -101,31 +122,37 @@ class ServerSelect extends Component {
 
     render() {
         return (
-            <header className={"switch-server"} style={{display: "flex"}}>
+            <header ref={this.header}>
+            <div onClick={this.showHeader} className={"switch-server"} style={{display: "flex"}}>
                 <span className={"server"} style={{display: "inline-block"}}>
-                    <div style={{textAlign: "center", backgroundColor: colorGreen}}>Active:</div>
-                    <div><input style={{textAlign: "center"}} ref={this.activeServerComment} type={"text"} defaultValue={"mainnet"}/></div>
                     <div><input ref={this.activeServer} onBlur={this.onActiveServerTextChange} type={"text"} defaultValue={this.state.activeServer.toString()}/></div>
+                    <div style={{textAlign: "center", backgroundColor: colorGreen}}>↑↑Active↑↑</div>
+                    <div><input style={{textAlign: "center"}} ref={this.activeServerComment} type={"text"} defaultValue={"/*mainnet*/"}/></div>
                 </span>
                 <span style={{verticalAlign: "center", alignContent: "center"}}>
-                    <div><br/></div>
                     <div style={{textAlign: "center"}}>
                         <SwapLeftOutlined/>
                         <button style={{textAlign: "center"}} ref={this.testButton} onClick={this.testServer}>TEST!</button>
                         <SwapRightOutlined/>
                     </div>
+                    <div><br/></div>
                     <div style={{textAlign: "center"}}>
                         <SwapRightOutlined/>
-                        <button style={{textAlign: "center"}} onClick={this.switchServer}>SWITCH</button>
+                        <button style={{textAlign: "center"}} ref={this.switchButton} onClick={this.switchServer}>SWITCH</button>
                         <SwapLeftOutlined/>
                     </div>
                     {/*<div style={{textAlign: "center"}}><SwapOutlined/></div>*/}
                 </span>
                 <span className={"server"} style={{display: "inline-block"}}>
-                    <div style={{textAlign: "center", backgroundColor: colorYellow}}>Standby:</div>
-                    <div><input style={{textAlign: "center"}} ref={this.standbyServerComment} type={"text"} defaultValue={"testnet"}/></div>
-                    <div><input ref={this.standbyServer} onBlur={this.onStandbyServerTextChange} type={"text"} defaultValue={this.state.standbyServer.toString()}/></div>
+                    <div><input style={{backgroundColor: colorYellow}} ref={this.standbyServer} onBlur={this.onStandbyServerTextChange} type={"text"} defaultValue={this.state.standbyServer.toString()}/></div>
+                    <div style={{textAlign: "center", backgroundColor: colorYellow}}>↑↑Standby↑↑</div>
+                    <div><input style={{textAlign: "center"}} ref={this.standbyServerComment} type={"text"} defaultValue={"customComment"}/></div>
                 </span>
+            </div>
+            <div onClick={this.hideHeader}>  {/*YES I am putting the function in the div instead of the button*/}
+                Connect to a <a href={"https://github.com/Hecate2/neo-fairy-test/"}>Fairy RPC server</a> before using!
+                <button>HIDE</button>
+            </div>
             </header>
         );
     }

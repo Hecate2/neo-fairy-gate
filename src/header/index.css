@@ -1,0 +1,11 @@
+* {
+    margin: 0.1em;
+}
+
+header{
+    background-color: cadetblue;
+}
+
+.switch-server *{
+    font-size: 18px;
+}
