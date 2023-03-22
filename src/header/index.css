@@ -6,7 +6,9 @@ header{
     grid-area: header;
     background-color: cadetblue;
 }
-
+button {
+    cursor: pointer;
+}
 .switch-server *{
     font-size: 18px;
 }

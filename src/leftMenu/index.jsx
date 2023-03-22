@@ -8,7 +8,9 @@ class LeftMenuItem extends Component{
         this.icon = props.icon;
         this.text = props.text;
         this.onClick = props.onClick;
+        this.backgroundColor = "inherit"
     }
+
     render() {
         return(
             <div className={"LeftMenuItem"} onClick={this.onClick}>
