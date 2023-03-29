@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "./static/css/main.2c915d8e.css",
-    "main.js": "./static/js/main.d9d7d914.js",
-    "static/js/787.6edb2836.chunk.js": "./static/js/787.6edb2836.chunk.js",
-    "index.html": "./index.html",
-    "main.2c915d8e.css.map": "./static/css/main.2c915d8e.css.map",
-    "main.d9d7d914.js.map": "./static/js/main.d9d7d914.js.map",
-    "787.6edb2836.chunk.js.map": "./static/js/787.6edb2836.chunk.js.map"
+    "main.css": "/neo-fairy-gate/static/css/main.2c915d8e.css",
+    "main.js": "/neo-fairy-gate/static/js/main.df0e41fd.js",
+    "static/js/787.6edb2836.chunk.js": "/neo-fairy-gate/static/js/787.6edb2836.chunk.js",
+    "index.html": "/neo-fairy-gate/index.html",
+    "main.2c915d8e.css.map": "/neo-fairy-gate/static/css/main.2c915d8e.css.map",
+    "main.df0e41fd.js.map": "/neo-fairy-gate/static/js/main.df0e41fd.js.map",
+    "787.6edb2836.chunk.js.map": "/neo-fairy-gate/static/js/787.6edb2836.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.2c915d8e.css",
-    "static/js/main.d9d7d914.js"
+    "static/js/main.df0e41fd.js"
   ]
 }
