@@ -13,7 +13,7 @@ class WorkSpace extends Component{
                 src={this.homepage + "/#/contracts"}
                 style={{gridArea: "main", border: 0, padding: 0, width: "100%", height: "100%"}}
                 id={"workSpace"} className={"WorkSpace"} title={"workSpace"} ref={this.workSpace}>
-                DUMMY
+                Loading...
             </iframe>
         );
     }
