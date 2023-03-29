@@ -6,7 +6,7 @@ class Contracts extends Component{
     render() {
         return (
             <div className={"Contracts"}>
-                DUMMY
+                DUMMY CONTRACTS
             </div>
         );
     }

@@ -17,3 +17,6 @@
 .LeftMenuItem:hover{
     background-color: #e9dab1;
 }
+.LeftMenuItem:active{
+    background-color: #e9ffb1;
+}

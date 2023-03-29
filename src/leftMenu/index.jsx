@@ -7,7 +7,10 @@ class LeftMenuItem extends Component{
         super(props);
         this.icon = props.icon;
         this.text = props.text;
-        this.onClick = props.onClick;
+        this.homepage = props.homepage;
+        this.onClick = () => {
+            document.getElementById("workSpace").src = this.homepage + "/" + this.text.toLowerCase();
+        };
         this.backgroundColor = "inherit"
     }
 
@@ -21,14 +24,18 @@ class LeftMenuItem extends Component{
 }
 
 class LeftMenu extends Component {
-    render() {
-        let menuItems = [
-            new LeftMenuItem({icon: EditOutlined, text: "Cotracts"}),
-            new LeftMenuItem({icon: ClusterOutlined, text: "Test"}),
+    constructor(props) {
+        super(props);
+        this.homepage = props.homepage;
+        this.menuItems = [
+            new LeftMenuItem({icon: EditOutlined, text: "Contracts", homepage: this.homepage}),
+            new LeftMenuItem({icon: ClusterOutlined, text: "Test", homepage: this.homepage}),
         ]
+    }
+    render() {
         return(
             <div className={"LeftMenu"}>
-                {menuItems.map((v) => <>{v.render()}</>)}
+                {this.menuItems.map((v) => <>{v.render()}</>)}
             </div>
         );
     }
