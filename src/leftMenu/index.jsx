@@ -9,7 +9,11 @@ class LeftMenuItem extends Component{
         this.text = props.text;
         this.homepage = props.homepage;
         this.onClick = () => {
-            document.getElementById("workSpace").src = this.homepage + "/#/" + this.text.toLowerCase();
+            const url = this.homepage + "/#/" + this.text.toLowerCase();
+            if (window.ctrlKey)
+                window.open(url);
+            else
+                document.getElementById("workSpace").src = url;
         };
         this.backgroundColor = "inherit"
     }
