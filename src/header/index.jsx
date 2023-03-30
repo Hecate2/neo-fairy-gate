@@ -148,8 +148,11 @@ class ServerSelect extends Component {
                     <div><input style={{textAlign: "center"}} ref={this.standbyServerComment} type={"text"} defaultValue={"customComment"}/></div>
                 </span>
             </div>
+            <div style={{fontSize: "20px", backgroundColor: colorBlack, color: colorYellow}}>
+                !!!<a href={"https://neo.org/converter/index"} style={{color: colorGreen}} target="_blank" rel="noreferrer">N3 DATA CONVERTER</a>!!!
+            </div>
             <div onClick={this.hideHeader}>  {/*YES I am putting the function in the div instead of the button*/}
-                Connect to a <a href={"https://github.com/Hecate2/neo-fairy-test/"}>Fairy RPC server</a> before using!
+                <label>Connect to a <a href={"https://github.com/Hecate2/neo-fairy-test/"} target="_blank" rel="noreferrer">Fairy RPC server</a> before using!</label>
                 <button>HIDE</button>
             </div>
             </header>

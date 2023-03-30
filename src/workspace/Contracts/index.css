@@ -4,12 +4,18 @@
     height: 100vh;
 }
 
-input[type="file"] {
+.Upload > input[type="file"] {
     display: none;
+}
+.Upload > button {
+    display: none;
+}
+.Upload > label{
+    cursor: pointer;
 }
 
 .Upload {
-    border: 2px double #ccc;
+    border: 2px solid #ccc;
     border-radius: 10px;
     display: inline-block;
     padding: 6px 12px;
