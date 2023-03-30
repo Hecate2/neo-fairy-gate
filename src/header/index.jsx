@@ -125,7 +125,7 @@ class ServerSelect extends Component {
             <header ref={this.header}>
             <div onClick={this.showHeader} className={"switch-server"} style={{display: "flex"}}>
                 <span className={"server"} style={{display: "inline-block"}}>
-                    <div><input ref={this.activeServer} onBlur={this.onActiveServerTextChange} type={"text"} defaultValue={this.state.activeServer.toString()}/></div>
+                    <div><input id="activeServer" ref={this.activeServer} onBlur={this.onActiveServerTextChange} type={"text"} defaultValue={this.state.activeServer.toString()}/></div>
                     <div style={{textAlign: "center", backgroundColor: colorGreen, cursor: "not-allowed"}}>↑↑Active↑↑</div>
                     <div><input style={{textAlign: "center"}} ref={this.activeServerComment} type={"text"} defaultValue={"/*mainnet*/"}/></div>
                 </span>
@@ -143,7 +143,7 @@ class ServerSelect extends Component {
                     </div>
                 </span>
                 <span className={"server"} style={{display: "inline-block"}}>
-                    <div><input style={{backgroundColor: colorYellow}} ref={this.standbyServer} onBlur={this.onStandbyServerTextChange} type={"text"} defaultValue={this.state.standbyServer.toString()}/></div>
+                    <div><input id="standbyServer" style={{backgroundColor: colorYellow}} ref={this.standbyServer} onBlur={this.onStandbyServerTextChange} type={"text"} defaultValue={this.state.standbyServer.toString()}/></div>
                     <div style={{textAlign: "center", backgroundColor: colorYellow, cursor: "not-allowed"}}>↑↑Standby↑↑</div>
                     <div><input style={{textAlign: "center"}} ref={this.standbyServerComment} type={"text"} defaultValue={"customComment"}/></div>
                 </span>

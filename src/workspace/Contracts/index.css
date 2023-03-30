@@ -4,17 +4,17 @@
     height: 100vh;
 }
 
-.Upload > input[type="file"] {
+.UploadButton > input[type="file"] {
     display: none;
 }
-.Upload > button {
+.UploadButton > button {
     display: none;
 }
-.Upload > label{
+.UploadButton > label{
     cursor: pointer;
 }
 
-.Upload {
+.UploadButton {
     border: 2px solid #ccc;
     border-radius: 10px;
     display: inline-block;
