@@ -9,6 +9,8 @@ class Upload extends Component{
     this.importFromActive = this.importFromActive.bind(this);
     this.importFromStandby = this.importFromStandby.bind(this);
     this.importFromRpcUrl = this.importFromRpcUrl.bind(this);
+    this.importFromUpload = this.importFromUpload.bind(this);
+    this.importFromFile = this.importFromFile.bind(this);
   }
 
   importFromActive(){
@@ -23,6 +25,14 @@ class Upload extends Component{
     let contracts = [...this.contractAddressInput.current.value.matchAll(new RegExp(/0[xX][0-9a-fA-F]{40}/g))];
     // todo
   }
+  importFromUpload(f){
+    let [nef, manifest, dumpnef, nefdbgnfo] = [f.target.files[0], f.target.files[1], f.target.files[2], f.target.files[3]];
+    this.importFromFile(nef, manifest, dumpnef, nefdbgnfo)
+  }
+  importFromFile(nef, manifest, dumpnef, nefdbgnfo){
+    console.log(nef, manifest, dumpnef, nefdbgnfo);
+    // todo
+  }
 
   render() {
     return (
@@ -30,12 +40,13 @@ class Upload extends Component{
         <div>
           <label className="ContractMultiFileUpload">
             <span className="UploadButton">
-              <input type="file" multiple="multiple" accept=".nef,.nef.txt,.manifest.json,.nefdbgnfo"/>
+              <input type="file" multiple="multiple" accept=".nef,.nef.txt,.manifest.json,.nefdbgnfo" onChange={this.importFromUpload}/>
               {/*<input type="file" multiple="multiple" webkitdirectory=""/>*/}
               <UploadOutlined /> UPLOAD FILES
             </span>
           </label>
         </div>
+        [.nef, .manifest.json, dumpnef(.nef.txt), .nefdbgnfo]
         <div>
           Or IMPORT these contracts...
           <div>
