@@ -26,12 +26,64 @@ class Upload extends Component{
     // todo
   }
   importFromUpload(f){
-    let [nef, manifest, dumpnef, nefdbgnfo] = [f.target.files[0], f.target.files[1], f.target.files[2], f.target.files[3]];
-    this.importFromFile(nef, manifest, dumpnef, nefdbgnfo)
+    // let files = [f.target.files[0], f.target.files[1], f.target.files[2], f.target.files[3]];
+    let files = [...f.target.files];
+    let manifest, nef, dumpnef, nefdbgnfo;
+    files.forEach(v => {
+      let lowerCaseName = v.name.toLowerCase();
+      if(lowerCaseName.endsWith(".manifest.json"))  manifest = v;
+      if(lowerCaseName.endsWith(".nef"))  nef = v;
+      if(lowerCaseName.endsWith(".nef.txt"))  dumpnef = v;
+      if(lowerCaseName.endsWith(".nefdbgnfo"))  nefdbgnfo = v;
+    })
+    // if (manifest === undefined){
+    //   alert("No .manifest.json");
+    //   return;
+    // }
+    // if (nef === undefined){
+    //   alert("No .nef");
+    //   return;
+    // }
+    // files.sort((a, b) => a === undefined ? 1 : a > b ? 1 : 0);
+    // let [manifest, nef, dumpnef, nefdbgnfo] = [files[0], files[1], files[2], files[3]];
+    this.importFromFile(manifest, nef, dumpnef, nefdbgnfo)
   }
-  importFromFile(nef, manifest, dumpnef, nefdbgnfo){
-    console.log(nef, manifest, dumpnef, nefdbgnfo);
-    // todo
+  importFromFile(manifest, nef, dumpnef, nefdbgnfo){
+    // console.log(nef, manifest, dumpnef, nefdbgnfo);
+    let args = {};
+    Promise.resolve().then(() => {
+      if (manifest !== undefined){
+        let reader = new FileReader();  reader.onload = (e) => {
+          args.manifest = e.target.result;
+        };
+        reader.readAsText(manifest);
+      }
+    }).then(() => {
+      if (nef !== undefined){
+        let reader = new FileReader();  reader.onload = (e) => {
+          args.nef = e.target.result;
+        };
+        reader.readAsArrayBuffer(nef);
+      }
+    }).then(() => {
+      if (dumpnef !== undefined){
+        let reader = new FileReader();  reader.onload = (e) => {
+          args.dumpnef = e.target.result;
+        };
+        reader.readAsText(dumpnef);
+      }
+    }).then(() => {
+      if (nefdbgnfo !== undefined){
+        let reader = new FileReader();  reader.onload = (e) => {
+          args.nefdbgnfo = e.target.result;
+        };
+        reader.readAsArrayBuffer(nefdbgnfo);
+      }
+    }).then(() => {
+      // todo: name, ... in args
+      console.log(args);
+      new SingleContract(args);
+    });
   }
 
   render() {
