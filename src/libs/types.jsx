@@ -1,3 +1,32 @@
+import { to_list } from "./misc";
+
+class UInt160 {
+    constructor(buffer) {
+        if (buffer.length !== 20) {
+            throw new Error('Invalid buffer length');
+        }
+
+        this.buffer = buffer;
+    }
+
+    static deserialize_from_bytes(buffer) {
+        return new UInt160(buffer);
+    }
+}
+
+class UInt256 {
+    constructor(buffer) {
+        if (buffer.length !== 32) {
+            throw new Error('Invalid byte length');
+        }
+        this.buffer = buffer;
+    }
+
+    static deserialize_from_bytes(buffer) {
+        return new UInt256(buffer);
+    }
+}
+
 class HashStr extends String {
     constructor(string) {
         super();
@@ -62,11 +91,11 @@ class Hash256Str extends HashStr {
         if (string.length === 64) {
             string = '0x' + string;
         }
-        assert(string.length === 66);
+        if (string.length !== 66) throw new Error(`Expected length 66, got ${string.length}`);
         super(string);
     }
 
-    static from_UInt256(u) {
+    static from_UInt256(u) {  // TODO
         let u_bytearray = u.toBigEndianArray();
         u_bytearray.reverse();
         let hash256str = u_bytearray.toHex();
@@ -96,20 +125,20 @@ class Hash160Str extends HashStr {
         if (string.length === 40) {
             string = '0x' + string;
         }
-        assert(string.length === 42);
+        if (string.length !== 42) throw new Error(`Expected length 42, got ${string.length}`);
         super(string);
     }
 
-    static from_UInt160(u) {
+    static from_UInt160(u) {  // TODO
         let u_bytearray = u.toBigEndianArray();
         u_bytearray.reverse();
         let hash160str = u_bytearray.toHex();
         return new Hash160Str(hash160str);
     }
 
-    static from_address(address) {
-        return Hash160Str.from_UInt160(Account.address_to_script_hash(address));
-    }
+    //static from_address(address) {
+    //    return Hash160Str.from_UInt160(Account.address_to_script_hash(address));
+    //}
 
     static zero() {
         return new Hash160Str(UInt160.zero());
@@ -119,9 +148,9 @@ class Hash160Str extends HashStr {
         return UInt160.parse(this.string.slice(2), 16);
     }
 
-    to_address() {
-        return Account.script_hash_to_address(this.to_UInt160());
-    }
+//    to_address() {
+//        return Account.script_hash_to_address(this.to_UInt160());
+//    }
 }
 
 class PublicKeyStr extends HashStr {
@@ -129,7 +158,7 @@ class PublicKeyStr extends HashStr {
     03f6829c418b7272efa93b19cc3336506fb84efac6a758be3d6d5216d0fbc4d6dd
     */
     constructor(string) {
-        assert(string.length === 66);
+        if (string.length !== 66) throw new Error(`Expected length 66, got ${string.length}`);
         super(string);
     }
 }
@@ -185,3 +214,4 @@ class Signer {
     }
 }
 
+export { UInt160, UInt256, HashStr, Hash160Str, Hash256Str, PublicKeyStr, WitnessScope, Signer }

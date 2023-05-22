@@ -1,10 +1,13 @@
+/* global BigInt */
+import { UInt160, Hash160Str } from "./types";
+
 class Interpreter {
     static bytes_to_int(bytes_) {
         return BigInt(`0x${Buffer.from(bytes_).reverse().toString('hex')}`);
     }
 
     static bytes_to_Hash160str(bytestring) {
-        return Hash160Str.from_UInt160(new Neo.UInt160(bytestring.reverse()));
+        return Hash160Str.from_UInt160(new UInt160(bytestring.reverse()));
     }
 
     static int_to_bytes(int_, bytes_needed = null) {
@@ -47,3 +50,5 @@ class ClientInterpreter extends Interpreter {
         return processed_struct;
     }
 }
+
+export { Interpreter, ClientInterpreter }

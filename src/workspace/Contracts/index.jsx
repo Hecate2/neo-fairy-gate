@@ -1,5 +1,6 @@
 import React, {Component} from "react";
-import {ImportOutlined, UploadOutlined} from "@ant-design/icons";
+import { ImportOutlined, UploadOutlined } from "@ant-design/icons";
+import { FairyClient } from "../../libs/NeoFairyClient";
 import "./index.css"
 
 class Upload extends Component{
@@ -22,8 +23,9 @@ class Upload extends Component{
     this.importFromRpcUrl(url);
   }
   importFromRpcUrl(url){
-    let contracts = [...this.contractAddressInput.current.value.matchAll(new RegExp(/0[xX][0-9a-fA-F]{40}/g))];
-    // todo
+      let contracts = [...this.contractAddressInput.current.value.matchAll(new RegExp(/0[xX][0-9a-fA-F]{40}/g))];
+      let client = new FairyClient(url);
+      client.metaRpcMethod("")
   }
   importFromUpload(f){
     // let files = [f.target.files[0], f.target.files[1], f.target.files[2], f.target.files[3]];

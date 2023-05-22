@@ -1,3 +1,25 @@
+import { UInt160, UInt256, Hash160Str, Hash256Str, PublicKeyStr, Signer } from './types';
+import { Interpreter } from './interpreters';
+//const os = require('os');
+//const path = require('path');
+//const fs = require('fs');
+const base64 = require('base64-js');
+
+const default_request_timeout = null;
+
+class VMState {
+    static BREAK = new VMState('BREAK');
+    static FAULT = new VMState('FAULT');
+    static HALT = new VMState('HALT');
+    static NONE = new VMState('NONE');
+    constructor(name) {
+        this.name = name;
+    }
+    toString() {
+        return `VMState.${this.name}`;
+    }
+}
+
 
 class RpcBreakpoint {
     constructor(state, break_reason, scripthash, contract_name, instruction_pointer, source_filename = null, source_line_num = null, source_content = null, exception = null, result_stack = null) {
@@ -22,7 +44,7 @@ class RpcBreakpoint {
 
     static from_raw_result(result) {
         result = result['result'];
-        return new RpcBreakpoint(result['state'], result['breakreason'], result['scripthash'], result['contractname'], result['instructionpointer'], source_filename = result['sourcefilename'], source_line_num = result['sourcelinenum'], source_content = result['sourcecontent']);
+        return new RpcBreakpoint(result['state'], result['breakreason'], result['scripthash'], result['contractname'], result['instructionpointer'], result['sourcefilename'], result['sourcelinenum'], result['sourcecontent']);
     }
 
     toString() {
@@ -37,6 +59,15 @@ class RpcBreakpoint {
     }
 }
 
+function to_list(element) {
+    if (Array.isArray(element)) {
+        return element;
+    }
+    if (element !== null && element !== undefined) {
+        return [element];
+    }
+    return [];
+}
 
 class FairyClient {
     constructor(
@@ -52,7 +83,7 @@ class FairyClient {
         with_print = true,
         verbose_return = false,
         verify_SSL = true,
-        requests_session = default_requests_session,
+        requests_session = null, // TODO default_requests_session,
         requests_timeout = default_request_timeout,
         auto_set_neo_balance = 10000000000,
         auto_set_gas_balance = 10000000000,
@@ -94,16 +125,16 @@ class FairyClient {
         this.requests_timeout = requests_timeout;
         this.hook_function_after_rpc_call = hook_function_after_rpc_call;
         this.default_fairy_wallet_scripthash = default_fairy_wallet_scripthash;
-        if (verify_SSL === false) {
-            console.log('WARNING: Will ignore SSL certificate errors!');
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning);
-        }
+        //if (verify_SSL === false) {
+        //    console.log('WARNING: Will ignore SSL certificate errors!');
+        //    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning);
+        //}
 
         if (fairy_session && auto_preparation) {
             try {
                 if (auto_reset_fairy_session) {
                     this.new_snapshots_from_current_system(fairy_session);
-                    this.set_gas_balance(10000000000, fairy_session = fairy_session, account = default_fairy_wallet_scripthash);
+                    this.set_gas_balance(10000000000, fairy_session, default_fairy_wallet_scripthash);
                 }
                 if (auto_set_neo_balance && this.wallet_scripthash) {
                     this.set_neo_balance(auto_set_neo_balance);
@@ -185,10 +216,11 @@ class FairyClient {
         }
         if (typeof result['result'] === 'object') {
             const result_result = result['result'];
-            if (gas_consumed := result_result['gasconsumed']) {
+            let gas_consumed;
+            if (gas_consumed = result_result['gasconsumed']) {
                 this.previous_gas_consumed = parseInt(gas_consumed);
             }
-            if (gas_consumed := result_result['networkfee']) {
+            if (gas_consumed = result_result['networkfee']) {
                 this.previous_network_fee = parseInt(gas_consumed);
             }
             if ('exception' in result_result && result_result['exception'] !== null) {
@@ -263,7 +295,7 @@ class FairyClient {
         let open_wallet_result;
         if (this.verbose_return) {
             const result = await this.meta_rpc_method("openwallet", [path, password]);
-            [open_wallet_result, _, _] = result;
+            [open_wallet_result, , ] = result;
         } else {
             open_wallet_result = await this.meta_rpc_method("openwallet", [path, password]);
         }
@@ -277,7 +309,7 @@ class FairyClient {
         let close_wallet_result;
         if (this.verbose_return) {
             const result = await this.meta_rpc_method("closewallet", []);
-            [close_wallet_result, _, _] = result;
+            [close_wallet_result, , ] = result;
         } else {
             close_wallet_result = await this.meta_rpc_method("closewallet", []);
         }
@@ -316,11 +348,13 @@ class FairyClient {
                     return result_dict;
                 }
             } else {
-                assert(Array.isArray(item) && item.length === 0);
+                if (!(Array.isArray(item) && item.length === 0))
+                    throw new Error("Unexpected iterator element ${item}")
                 return item;
             }
         }
         const _type = item['type'];
+        let value;
         if (_type === 'Any' && !('value' in item)) {
             return null;
         } else if (_type === 'InteropInterface' && 'id' in item) {
@@ -328,7 +362,7 @@ class FairyClient {
             const iterator_id = item['id'];
             return this.traverse_iterator(session, iterator_id);
         } else {
-            const value = item['value'];
+            value = item['value'];
         }
         if (_type === 'Integer') {
             return parseInt(value);
@@ -503,7 +537,7 @@ class FairyClient {
 
     invokemany(call_arguments, signers = null, relay = null, do_not_raise_on_result = false, with_print = true, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        assert(fairy_session);  // only supports sessioned calls for now
+        if (fairy_session == null || fairy_session == undefined) throw new Error('invokemany only supports sessioned calls for now');
         signers = to_list(signers || this.signers);
         if (this.with_print && with_print) {
             console.log(`${fairy_session}::${JSON.stringify(call_arguments)} relay=${relay} ${signers}`);
@@ -598,7 +632,7 @@ class FairyClient {
     open_default_fairy_wallet(path, password) {
         let open_wallet_result;
         if (this.verbose_return) {
-            [open_wallet_result, _, _] = this.meta_rpc_method('opendefaultfairywallet', [path, password]);
+            [open_wallet_result, , ] = this.meta_rpc_method('opendefaultfairywallet', [path, password]);
         } else {
             open_wallet_result = this.meta_rpc_method('opendefaultfairywallet', [path, password]);
         }
@@ -611,7 +645,7 @@ class FairyClient {
     reset_default_fairy_wallet() {
         let close_wallet_result;
         if (this.verbose_return) {
-            [close_wallet_result, _, _] = this.meta_rpc_method('resetdefaultfairywallet', []);
+            [close_wallet_result, , ] = this.meta_rpc_method('resetdefaultfairywallet', []);
         } else {
             close_wallet_result = this.meta_rpc_method('resetdefaultfairywallet', []);
         }
@@ -728,54 +762,48 @@ class FairyClient {
         return result;
     }
 
-    const os = require('os');
-    const path = require('path');
-    const fs = require('fs');
+    //static get_nef_and_manifest_from_path(nef_path_and_filename) {
+    //    const [dir, nef_filename] = path.split(nef_path_and_filename);
+    //    if (!nef_filename.endsWith('.nef')) {
+    //        throw new Error('Invalid NEF file format. Please provide a .nef file.');
+    //    }
+    //    const nef = fs.readFileSync(nef_path_and_filename);
+    //    const manifest = fs.readFileSync(path.join(dir, `${nef_filename.slice(0, -4)}.manifest.json`), 'utf8');
+    //    return [nef, manifest];
+    //}
 
-    static get_nef_and_manifest_from_path(nef_path_and_filename) {
-        const [dir, nef_filename] = path.split(nef_path_and_filename);
-        if (!nef_filename.endsWith('.nef')) {
-            throw new Error('Invalid NEF file format. Please provide a .nef file.');
-        }
-        const nef = fs.readFileSync(nef_path_and_filename);
-        const manifest = fs.readFileSync(path.join(dir, `${nef_filename.slice(0, -4)}.manifest.json`), 'utf8');
-        return [nef, manifest];
-    }
+    //async virtual_deploy_from_path(nef_path_and_filename, fairy_session = null, auto_dumpnef = true, dumpnef_backup = true, auto_set_debug_info = true, auto_set_client_contract_scripthash = true) {
+    //    fairy_session = fairy_session || this.fairy_session;
+    //    const [dir, nef_filename] = path.split(nef_path_and_filename);
+    //    if (!nef_filename.endsWith('.nef')) {
+    //        throw new Error('Invalid NEF file format. Please provide a .nef file.');
+    //    }
+    //    const [nef, manifest] = this.get_nef_and_manifest_from_path(nef_path_and_filename);
+    //    const contract_hash = await this.virtual_deploy(nef, manifest, null, fairy_session);
+    //    const nefdbgnfo_path_and_filename = path.join(dir, `${nef_filename.slice(0, -4)}.nefdbgnfo`);
+    //    const dumpnef_path_and_filename = path.join(dir, `${nef_filename.slice(0, -4)}.nef.txt`);
+    //    if (fs.existsSync(nefdbgnfo_path_and_filename)) {
+    //        if (auto_dumpnef && (!fs.existsSync(dumpnef_path_and_filename) || fs.statSync(dumpnef_path_and_filename).mtime < fs.statSync(nef_path_and_filename).mtime)) {
+    //            if (dumpnef_backup && fs.existsSync(dumpnef_path_and_filename) && !fs.existsSync(path.join(dir, `${nef_filename.slice(0, -4)}.bk.txt`))) {
+    //                // only backup the .nef.txt file when no backup exists
+    //                fs.renameSync(dumpnef_path_and_filename, path.join(dir, `${nef_filename.slice(0, -4)}.bk.txt`));
+    //            }
+    //            console.log(`dumpnef ${nef_filename}`, os.popen(`dumpnef ${nef_path_and_filename} > ${dumpnef_path_and_filename}`).read());
+    //        }
+    //        if (auto_set_debug_info && fs.existsSync(dumpnef_path_and_filename) && fs.statSync(dumpnef_path_and_filename).mtime >= fs.statSync(nef_path_and_filename).mtime && fairy_session) {
+    //            const nefdbgnfo = fs.readFileSync(nefdbgnfo_path_and_filename);
+    //            const dumpnef = fs.readFileSync(dumpnef_path_and_filename, 'utf8');
+    //            await this.set_debug_info(nefdbgnfo, dumpnef, contract_hash, fairy_session);
+    //        }
+    //    } else {
+    //        console.warn(`WARNING! No .nefdbgnfo found. It is highly recommended to generate .nefdbgnfo for debugging. If you are writing contracts in C#, consider building your project with command \`nccs your.csproj --debug\`.`);
+    //    }
+    //    if (auto_set_client_contract_scripthash) {
+    //        this.contract_scripthash = contract_hash;
+    //    }
+    //    return contract_hash;
+    //}
 
-    async virtual_deploy_from_path(nef_path_and_filename, fairy_session = null, auto_dumpnef = true, dumpnef_backup = true, auto_set_debug_info = true, auto_set_client_contract_scripthash = true) {
-        fairy_session = fairy_session || this.fairy_session;
-        const [dir, nef_filename] = path.split(nef_path_and_filename);
-        if (!nef_filename.endsWith('.nef')) {
-            throw new Error('Invalid NEF file format. Please provide a .nef file.');
-        }
-        const [nef, manifest] = this.get_nef_and_manifest_from_path(nef_path_and_filename);
-        const contract_hash = await this.virtual_deploy(nef, manifest, null, fairy_session);
-        const nefdbgnfo_path_and_filename = path.join(dir, `${nef_filename.slice(0, -4)}.nefdbgnfo`);
-        const dumpnef_path_and_filename = path.join(dir, `${nef_filename.slice(0, -4)}.nef.txt`);
-        if (fs.existsSync(nefdbgnfo_path_and_filename)) {
-            if (auto_dumpnef && (!fs.existsSync(dumpnef_path_and_filename) || fs.statSync(dumpnef_path_and_filename).mtime < fs.statSync(nef_path_and_filename).mtime)) {
-                if (dumpnef_backup && fs.existsSync(dumpnef_path_and_filename) && !fs.existsSync(path.join(dir, `${nef_filename.slice(0, -4)}.bk.txt`))) {
-                    // only backup the .nef.txt file when no backup exists
-                    fs.renameSync(dumpnef_path_and_filename, path.join(dir, `${nef_filename.slice(0, -4)}.bk.txt`));
-                }
-                console.log(`dumpnef ${nef_filename}`, os.popen(`dumpnef ${nef_path_and_filename} > ${dumpnef_path_and_filename}`).read());
-            }
-            if (auto_set_debug_info && fs.existsSync(dumpnef_path_and_filename) && fs.statSync(dumpnef_path_and_filename).mtime >= fs.statSync(nef_path_and_filename).mtime && fairy_session) {
-                const nefdbgnfo = fs.readFileSync(nefdbgnfo_path_and_filename);
-                const dumpnef = fs.readFileSync(dumpnef_path_and_filename, 'utf8');
-                await this.set_debug_info(nefdbgnfo, dumpnef, contract_hash, fairy_session);
-            }
-        } else {
-            console.warn(`WARNING! No .nefdbgnfo found. It is highly recommended to generate .nefdbgnfo for debugging. If you are writing contracts in C#, consider building your project with command \`nccs your.csproj --debug\`.`);
-        }
-        if (auto_set_client_contract_scripthash) {
-            this.contract_scripthash = contract_hash;
-        }
-        return contract_hash;
-    }
-
-
-    const base64 = require('base64-js');
 
     static all_to_base64(key) {
         if (typeof key === 'string') {
@@ -1071,3 +1099,5 @@ class FairyClient {
         return Object.fromEntries(Object.entries(result).map(([k, v]) => [parseInt(k), v]));
     }
 }
+
+export { FairyClient };
