@@ -1,11 +1,12 @@
 import { UInt160, UInt256, Hash160Str, Hash256Str, PublicKeyStr, Signer } from './types';
 import { Interpreter } from './interpreters';
+import fetchWithTimeout from "../utils/fetchWithTimeout";
 //const os = require('os');
 //const path = require('path');
 //const fs = require('fs');
 const base64 = require('base64-js');
 
-const default_request_timeout = null;
+const default_request_timeout = 1_000;
 
 class VMState {
     static BREAK = new VMState('BREAK');
@@ -82,8 +83,8 @@ class FairyClient {
         auto_reset_fairy_session = true,
         with_print = true,
         verbose_return = false,
-        verify_SSL = true,
-        requests_session = null, // TODO default_requests_session,
+        //verify_SSL = true,
+        //requests_session = null,
         requests_timeout = default_request_timeout,
         auto_set_neo_balance = 10000000000,
         auto_set_gas_balance = 10000000000,
@@ -93,7 +94,7 @@ class FairyClient {
     ) {
         this.target_url = target_url;
         this.contract_scripthash = contract_scripthash;
-        this.requests_session = requests_session;
+        //this.requests_session = requests_session;
         if (wallet_address_or_scripthash) {
             if (wallet_address_or_scripthash.startsWith('N')) {
                 this.wallet_address = wallet_address_or_scripthash;
@@ -107,7 +108,7 @@ class FairyClient {
             this.wallet_address = null;
             this.wallet_scripthash = null;
             this.signers = signers || [];
-            console.log('WARNING: No wallet address specified when building the fairy client!');
+            //console.log('WARNING: No wallet address specified when building the fairy client!');
         }
         this.previous_post_data = null;
         this.with_print = with_print;
@@ -121,7 +122,7 @@ class FairyClient {
         this.script_default_relay = script_default_relay;
         this.confirm_relay_to_blockchain = confirm_relay_to_blockchain;
         this.fairy_session = fairy_session;
-        this.verify_SSL = verify_SSL;
+        //this.verify_SSL = verify_SSL;
         this.requests_timeout = requests_timeout;
         this.hook_function_after_rpc_call = hook_function_after_rpc_call;
         this.default_fairy_wallet_scripthash = default_fairy_wallet_scripthash;
@@ -189,9 +190,9 @@ class FairyClient {
     }
 
     async meta_rpc_method_with_raw_result(method, parameters) {
-        const post_data = this.request_body_builder(method, parameters);
+        const post_data = FairyClient.request_body_builder(method, parameters);
         this.previous_post_data = post_data;
-        const result = await this.requests_session.post(this.target_url, post_data, { timeout: this.requests_timeout })
+        const result = await fetchWithTimeout(this.target_url, { method: "POST", mode: "cors", cache: "no-cache", body: post_data }, this.requests_timeout)
             .then(res => res.text())
             .then(text => JSON.parse(text));
         if ('error' in result) {
@@ -206,9 +207,9 @@ class FairyClient {
     }
 
     async meta_rpc_method(method, parameters, relay = null, do_not_raise_on_result = false) {
-        const post_data = this.request_body_builder(method, parameters);
+        const post_data = FairyClient.request_body_builder(method, parameters);
         this.previous_post_data = post_data;
-        const result = await this.requests_session.post(this.target_url, post_data, { timeout: this.requests_timeout, verify: this.verify_SSL })
+        const result = await fetchWithTimeout(this.target_url, { method: "POST", mode: "cors", cache: "no-cache", body: post_data }, this.requests_timeout )
             .then(res => res.text())
             .then(text => JSON.parse(text));
         if ('error' in result) {
@@ -216,12 +217,11 @@ class FairyClient {
         }
         if (typeof result['result'] === 'object') {
             const result_result = result['result'];
-            let gas_consumed;
-            if (gas_consumed = result_result['gasconsumed']) {
-                this.previous_gas_consumed = parseInt(gas_consumed);
+            if (result_result['gasconsumed']) {
+                this.previous_gas_consumed = parseInt(result_result['gasconsumed']);
             }
-            if (gas_consumed = result_result['networkfee']) {
-                this.previous_network_fee = parseInt(gas_consumed);
+            if (result_result['networkfee']) {
+                this.previous_network_fee = parseInt(result_result['networkfee']);
             }
             if ('exception' in result_result && result_result['exception'] !== null) {
                 if (do_not_raise_on_result) {
@@ -267,16 +267,16 @@ class FairyClient {
         console.log(this.previous_result);
     }
 
-    sendrawtransaction(transaction) {
-        return this.meta_rpc_method("sendrawtransaction", [transaction], false);
+    async sendrawtransaction(transaction) {
+        return await this.meta_rpc_method("sendrawtransaction", [transaction], false);
     }
 
-    getrawtransaction(transaction_hash, verbose = false) {
-        return this.meta_rpc_method("getrawtransaction", [transaction_hash.toString(), verbose], false);
+    async getrawtransaction(transaction_hash, verbose = false) {
+        return await this.meta_rpc_method("getrawtransaction", [transaction_hash.toString(), verbose], false);
     }
 
-    calculatenetworkfee(txBase64Str) {
-        return this.meta_rpc_method("calculatenetworkfee", [txBase64Str], false);
+    async calculatenetworkfee(txBase64Str) {
+        return await this.meta_rpc_method("calculatenetworkfee", [txBase64Str], false);
     }
 
     get totalfee() {
@@ -320,9 +320,9 @@ class FairyClient {
     }
 
     async traverse_iterator(sid, iid, count = 100) {
-        const post_data = this.request_body_builder('traverseiterator', [sid, iid, count]);
+        const post_data = FairyClient.request_body_builder('traverseiterator', [sid, iid, count]);
         this.previous_post_data = post_data;
-        const result = (await this.requests_session.post(this.target_url, post_data, { timeout: this.requests_timeout, verify: this.verify_SSL })
+        const result = (await fetchWithTimeout(this.target_url, { options: { method: "POST", mode: "cors", cache: "no-cache", body: post_data }, timeout: this.requests_timeout })
             .then(res => res.text())
             .then(text => JSON.parse(text)))['result'];
         const result_dict = {};
@@ -349,7 +349,7 @@ class FairyClient {
                 }
             } else {
                 if (!(Array.isArray(item) && item.length === 0))
-                    throw new Error("Unexpected iterator element ${item}")
+                    throw new Error(`Unexpected iterator element ${item}`)
                 return item;
             }
         }
@@ -502,7 +502,7 @@ class FairyClient {
         throw new Error(`Unable to handle param ${param} with type ${type_param}`);
     }
 
-    invokefunction_of_any_contract(scripthash, operation, params = null, signers = null, relay = null, do_not_raise_on_result = false, with_print = true, fairy_session = null) {
+    async invokefunction_of_any_contract(scripthash, operation, params = null, signers = null, relay = null, do_not_raise_on_result = false, with_print = true, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
         params = params || [];
         signers = to_list(signers || this.signers);
@@ -521,23 +521,23 @@ class FairyClient {
         ];
         let result;
         if (fairy_session) {
-            result = this.meta_rpc_method('invokefunctionwithsession', [fairy_session, relay || (relay === null && this.function_default_relay), ...parameters], false, do_not_raise_on_result);
+            result = await this.meta_rpc_method('invokefunctionwithsession', [fairy_session, relay || (relay === null && this.function_default_relay), ...parameters], false, do_not_raise_on_result);
         } else {
-            result = this.meta_rpc_method('invokefunction', parameters, relay || (relay === null && this.function_default_relay), do_not_raise_on_result);
+            result = await this.meta_rpc_method('invokefunction', parameters, relay || (relay === null && this.function_default_relay), do_not_raise_on_result);
         }
         return result;
     }
 
-    invokefunction(operation, params = null, signers = null, relay = null, do_not_raise_on_result = false, with_print = true, fairy_session = null) {
+    async invokefunction(operation, params = null, signers = null, relay = null, do_not_raise_on_result = false, with_print = true, fairy_session = null) {
         if (!this.contract_scripthash || this.contract_scripthash.equals(Hash160Str.zero())) {
             throw new Error(`Please set client.contract_scripthash before invoking function. Got ${this.contract_scripthash}`);
         }
-        return this.invokefunction_of_any_contract(this.contract_scripthash, operation, params, signers, relay || (relay === null && this.function_default_relay), do_not_raise_on_result, with_print, fairy_session);
+        return await this.invokefunction_of_any_contract(this.contract_scripthash, operation, params, signers, relay || (relay === null && this.function_default_relay), do_not_raise_on_result, with_print, fairy_session);
     }
 
-    invokemany(call_arguments, signers = null, relay = null, do_not_raise_on_result = false, with_print = true, fairy_session = null) {
+    async invokemany(call_arguments, signers = null, relay = null, do_not_raise_on_result = false, with_print = true, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        if (fairy_session == null || fairy_session == undefined) throw new Error('invokemany only supports sessioned calls for now');
+        if (fairy_session === null || fairy_session === undefined) throw new Error('invokemany only supports sessioned calls for now');
         signers = to_list(signers || this.signers);
         if (this.with_print && with_print) {
             console.log(`${fairy_session}::${JSON.stringify(call_arguments)} relay=${relay} ${signers}`);
@@ -547,10 +547,10 @@ class FairyClient {
             typeof call[0] === 'string' ? call[1] : call[0],
             (call.length >= 3 ? call[2].map(param => this.parse_params(param)) : []),
         ]);
-        return this.meta_rpc_method('invokemanywithsession', [fairy_session, relay || (relay === null && this.function_default_relay), parsed_call_arguments, signers.map(signer => signer.to_dict())], false, do_not_raise_on_result);
+        return await this.meta_rpc_method('invokemanywithsession', [fairy_session, relay || (relay === null && this.function_default_relay), parsed_call_arguments, signers.map(signer => signer.to_dict())], false, do_not_raise_on_result);
     }
 
-    invokescript(script, signers = null, relay = null, fairy_session = null) {
+    async invokescript(script, signers = null, relay = null, fairy_session = null) {
         if (typeof script === 'object' && script instanceof Uint8Array) {
             script = new TextDecoder().decode(script);
         }
@@ -559,42 +559,42 @@ class FairyClient {
         let result;
         if (fairy_session) {
             relay = relay || (relay === null && this.script_default_relay);
-            result = this.meta_rpc_method('invokescriptwithsession', [fairy_session, relay, script, signers.map(signer => signer.to_dict())], false);
+            result = await this.meta_rpc_method('invokescriptwithsession', [fairy_session, relay, script, signers.map(signer => signer.to_dict())], false);
         } else {
-            result = this.meta_rpc_method('invokescript', [script, signers.map(signer => signer.to_dict())], relay || (relay === null && this.script_default_relay));
+            result = await this.meta_rpc_method('invokescript', [script, signers.map(signer => signer.to_dict())], relay || (relay === null && this.script_default_relay));
         }
         return result;
     }
 
-    sendfrom(asset_id, from_address, to_address, value, signers = null) {
+    async sendfrom(asset_id, from_address, to_address, value, signers = null) {
         signers = to_list(signers || this.signers);
-        return this.meta_rpc_method('sendfrom', [
+        return await this.meta_rpc_method('sendfrom', [
             asset_id.toString(),
             from_address, to_address, value,
             signers.map(signer => signer.to_dict()),
         ]);
     }
 
-    sendtoaddress(asset_id, address, value) {
-        return this.meta_rpc_method('sendtoaddress', [
+    async sendtoaddress(asset_id, address, value) {
+        return await this.meta_rpc_method('sendtoaddress', [
             asset_id.toString(), address, value,
         ]);
     }
 
-    send_neo_to_address(to_address, value) {
-        return this.sendtoaddress(Hash160Str.fromString("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"), to_address.toString(), value);
+    async send_neo_to_address(to_address, value) {
+        return await this.sendtoaddress(Hash160Str.fromString("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"), to_address.toString(), value);
     }
 
-    send_gas_to_address(to_address, value) {
-        return this.sendtoaddress(Hash160Str.fromString("0xd2a4cff31913016155e38e474a2c06d08be276cf"), to_address.toString(), value);
+    async send_gas_to_address(to_address, value) {
+        return await this.sendtoaddress(Hash160Str.fromString("0xd2a4cff31913016155e38e474a2c06d08be276cf"), to_address.toString(), value);
     }
 
-    getwalletbalance(asset_id) {
-        return parseInt(this.meta_rpc_method('getwalletbalance', [asset_id.toString()])['balance']);
+    async getwalletbalance(asset_id) {
+        return parseInt(await this.meta_rpc_method('getwalletbalance', [asset_id.toString()])['balance']);
     }
 
-    get_neo_balance(owner = null, with_print = false) {
-        return this.invokefunction_of_any_contract(
+    async get_neo_balance(owner = null, with_print = false) {
+        return await this.invokefunction_of_any_contract(
             Hash160Str.fromString("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"),
             'balanceOf',
             [owner || this.wallet_scripthash],
@@ -604,8 +604,8 @@ class FairyClient {
         // return this.getwalletbalance(Hash160Str.from_UInt160(NeoToken().hash));
     }
 
-    get_gas_balance(owner = null, with_print = false) {
-        return this.invokefunction_of_any_contract(
+    async get_gas_balance(owner = null, with_print = false) {
+        return await this.invokefunction_of_any_contract(
             Hash160Str.fromString("0xd2a4cff31913016155e38e474a2c06d08be276cf"),
             'balanceOf',
             [owner || this.wallet_scripthash],
@@ -615,12 +615,12 @@ class FairyClient {
         // return this.getwalletbalance(Hash160Str.from_UInt160(GasToken().hash));
     }
 
-    get_nep17token_balance(token_address, owner = null, with_print = false) {
-        return this.invokefunction_of_any_contract(token_address, 'balanceOf', [owner || this.wallet_scripthash], false, with_print);
+    async get_nep17token_balance(token_address, owner = null, with_print = false) {
+        return await this.invokefunction_of_any_contract(token_address, 'balanceOf', [owner || this.wallet_scripthash], false, with_print);
     }
 
-    get_nep11token_balance(token_address, tokenId, owner = null, with_print = false) {
-        return this.invokefunction_of_any_contract(token_address, 'balanceOf', [owner || this.wallet_scripthash, tokenId], false, with_print);
+    async get_nep11token_balance(token_address, tokenId, owner = null, with_print = false) {
+        return await this.invokefunction_of_any_contract(token_address, 'balanceOf', [owner || this.wallet_scripthash, tokenId], false, with_print);
     }
 
     /*
@@ -629,12 +629,12 @@ class FairyClient {
      * before using the following methods!
     */
 
-    open_default_fairy_wallet(path, password) {
+    async open_default_fairy_wallet(path, password) {
         let open_wallet_result;
         if (this.verbose_return) {
-            [open_wallet_result, , ] = this.meta_rpc_method('opendefaultfairywallet', [path, password]);
+            [open_wallet_result, , ] = await this.meta_rpc_method('opendefaultfairywallet', [path, password]);
         } else {
-            open_wallet_result = this.meta_rpc_method('opendefaultfairywallet', [path, password]);
+            open_wallet_result = await this.meta_rpc_method('opendefaultfairywallet', [path, password]);
         }
         if (!open_wallet_result) {
             throw new Error(`Failed to open default wallet ${path} with given password.`);
@@ -642,12 +642,12 @@ class FairyClient {
         return open_wallet_result;
     }
 
-    reset_default_fairy_wallet() {
+    async reset_default_fairy_wallet() {
         let close_wallet_result;
         if (this.verbose_return) {
-            [close_wallet_result, , ] = this.meta_rpc_method('resetdefaultfairywallet', []);
+            [close_wallet_result, , ] = await this.meta_rpc_method('resetdefaultfairywallet', []);
         } else {
-            close_wallet_result = this.meta_rpc_method('resetdefaultfairywallet', []);
+            close_wallet_result = await this.meta_rpc_method('resetdefaultfairywallet', []);
         }
         if (!close_wallet_result) {
             throw new Error('Failed to reset default wallet.');
@@ -655,82 +655,83 @@ class FairyClient {
         return close_wallet_result;
     }
 
-    set_session_fairy_wallet_with_NEP2(nep2, password, fairy_session = null) {
-        const open_wallet_result = this.meta_rpc_method('setsessionfairywalletwithnep2', [nep2, password, fairy_session || this.fairy_session]);
+    async set_session_fairy_wallet_with_NEP2(nep2, password, fairy_session = null) {
+        const open_wallet_result = await this.meta_rpc_method('setsessionfairywalletwithnep2', [nep2, password, fairy_session || this.fairy_session]);
         if (!open_wallet_result) {
             throw new Error(`Failed to open NEP2 wallet ${nep2} with given password.`);
         }
         return open_wallet_result;
     }
 
-    set_session_fairy_wallet_with_WIF(wif, password, fairy_session = null) {
-        const open_wallet_result = this.meta_rpc_method('setsessionfairywalletwithwif', [wif, password, fairy_session || this.fairy_session]);
+    async set_session_fairy_wallet_with_WIF(wif, password, fairy_session = null) {
+        const open_wallet_result = await this.meta_rpc_method('setsessionfairywalletwithwif', [wif, password, fairy_session || this.fairy_session]);
         if (!open_wallet_result) {
             throw new Error(`Failed to open WIF wallet ${wif} with given password.`);
         }
         return open_wallet_result;
     }
 
-    get_time_milliseconds() {
-        return this.meta_rpc_method('gettime', [])['time'];
+    async get_time_milliseconds() {
+        return await this.meta_rpc_method('gettime', [])['time'];
     }
 
-    new_snapshots_from_current_system(fairy_sessions = null) {
+    async new_snapshots_from_current_system(fairy_sessions = null) {
         fairy_sessions = fairy_sessions || this.fairy_session;
         if (fairy_sessions === null) {
             throw new Error('No RpcServer session specified');
         }
         if (Array.isArray(fairy_sessions)) {
-            return this.meta_rpc_method('newsnapshotsfromcurrentsystem', fairy_sessions);
+            return await this.meta_rpc_method('newsnapshotsfromcurrentsystem', fairy_sessions);
         } else {
-            return this.meta_rpc_method('newsnapshotsfromcurrentsystem', [fairy_sessions]);
+            return await this.meta_rpc_method('newsnapshotsfromcurrentsystem', [fairy_sessions]);
         }
     }
 
-    delete_snapshots(fairy_sessions) {
-        return this.meta_rpc_method('deletesnapshots', Array.isArray(fairy_sessions) ? fairy_sessions : [fairy_sessions]);
+    async delete_snapshots(fairy_sessions) {
+        return await this.meta_rpc_method('deletesnapshots', Array.isArray(fairy_sessions) ? fairy_sessions : [fairy_sessions]);
     }
 
-    list_snapshots() {
-        return this.meta_rpc_method('listsnapshots', []);
+    async list_snapshots() {
+        return await this.meta_rpc_method('listsnapshots', []);
     }
 
-    rename_snapshot(old_name, new_name) {
-        return this.meta_rpc_method('renamesnapshot', [old_name, new_name]);
+    async rename_snapshot(old_name, new_name) {
+        return await this.meta_rpc_method('renamesnapshot', [old_name, new_name]);
     }
 
-    copy_snapshot(old_name, new_name) {
-        return this.meta_rpc_method('copysnapshot', [old_name, new_name]);
+    async copy_snapshot(old_name, new_name) {
+        return await this.meta_rpc_method('copysnapshot', [old_name, new_name]);
     }
 
-    set_snapshot_timestamp(timestamp_ms = null, fairy_session = null) {
+    async set_snapshot_timestamp(timestamp_ms = null, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        return this.meta_rpc_method('setsnapshottimestamp', [fairy_session, timestamp_ms]);
+        return await this.meta_rpc_method('setsnapshottimestamp', [fairy_session, timestamp_ms]);
     }
 
-    get_snapshot_timestamp(fairy_sessions = null) {
+    async get_snapshot_timestamp(fairy_sessions = null) {
         fairy_sessions = fairy_sessions || this.fairy_session;
         if (fairy_sessions === null) {
             throw new Error('No RpcServer session specified');
         }
-        return this.meta_rpc_method('getsnapshottimestamp', Array.isArray(fairy_sessions) ? fairy_sessions : [fairy_sessions]);
+        return await this.meta_rpc_method('getsnapshottimestamp', Array.isArray(fairy_sessions) ? fairy_sessions : [fairy_sessions]);
     }
 
-    set_snapshot_random(designated_random = null, fairy_session = null) {
+    async set_snapshot_random(designated_random = null, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method('setsnapshotrandom', [fairy_session, designated_random]);
+        const result = await this.meta_rpc_method('setsnapshotrandom', [fairy_session, designated_random]);
         for (let key in result) {
             result[key] = result[key] === null ? null : parseInt(result[key]);
         }
         return result;
     }
 
-    get_snapshot_random(fairy_sessions = null) {
+    async get_snapshot_random(fairy_sessions = null) {
         fairy_sessions = fairy_sessions || this.fairy_session;
+        let result;
         if (typeof fairy_sessions === 'string') {
-            var result = this.meta_rpc_method('getsnapshotrandom', [fairy_sessions]);
+            result = await this.meta_rpc_method('getsnapshotrandom', [fairy_sessions]);
         } else {
-            var result = this.meta_rpc_method('getsnapshotrandom', fairy_sessions);
+            result = await this.meta_rpc_method('getsnapshotrandom', fairy_sessions);
         }
         for (let key in result) {
             result[key] = result[key] === null ? null : parseInt(result[key]);
@@ -738,15 +739,15 @@ class FairyClient {
         return result;
     }
 
-    virtual_deploy(nef, manifest, signers = null, fairy_session = null) {
+    async virtual_deploy(nef, manifest, signers = null, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
         const manifest_dict = JSON.parse(manifest);
-        if (manifest_dict["permissions"] == [{ 'contract': '0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0', 'methods': ['deserialize', 'serialize'] }, { 'contract': '0xfffdc93764dbaddd97c48f252a53ea4643faa3fd', 'methods': ['destroy', 'getContract', 'update'] }]) {
+        if (manifest_dict["permissions"] === [{ 'contract': '0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0', 'methods': ['deserialize', 'serialize'] }, { 'contract': '0xfffdc93764dbaddd97c48f252a53ea4643faa3fd', 'methods': ['destroy', 'getContract', 'update'] }]) {
             console.warn('!!!SERIOUS WARNING: Did you write [ContractPermission("*", "*")] in your contract?!!!');
         }
         try {
             const signers_list = Array.isArray(signers) ? signers.map(signer => signer.to_dict()) : to_list(signers || this.signers).map(signer => signer.to_dict());
-            const result = this.meta_rpc_method("virtualdeploy", [fairy_session, Buffer.from(nef).toString('base64'), manifest, signers_list])[fairy_session];
+            const result = await this.meta_rpc_method("virtualdeploy", [fairy_session, Buffer.from(nef).toString('base64'), manifest, signers_list])[fairy_session];
             return new Hash160Str(result);
         } catch (error) {
             console.error(`If you have weird exceptions from this method, check if you have written any \`null\` to contract storage in \`_deploy\` method. Especially, consider marking your \`UInt160\` properties of class as \`static readonly UInt160\` in your contract.\nError: ${error}`);
@@ -820,152 +821,152 @@ class FairyClient {
         return key;
     }
 
-    get_storage_with_session(key, fairy_session = null, contract_scripthash = this.contract_scripthash) {
+    async get_storage_with_session(key, fairy_session = null, contract_scripthash = this.contract_scripthash) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method("getstoragewithsession", [fairy_session, contract_scripthash.value, this.all_to_base64(key)]);
+        const result = await this.meta_rpc_method("getstoragewithsession", [fairy_session, contract_scripthash.value, this.all_to_base64(key)]);
         return result;
     }
 
-    find_storage_with_session(key, fairy_session = null, contract_scripthash = this.contract_scripthash) {
+    async find_storage_with_session(key, fairy_session = null, contract_scripthash = this.contract_scripthash) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method("findstoragewithsession", [fairy_session, contract_scripthash.value, this.all_to_base64(key)]);
+        const result = await this.meta_rpc_method("findstoragewithsession", [fairy_session, contract_scripthash.value, this.all_to_base64(key)]);
         return result;
     }
 
-    put_storage_with_session(key, value, fairy_session = null, contract_scripthash = this.contract_scripthash) {
+    async put_storage_with_session(key, value, fairy_session = null, contract_scripthash = this.contract_scripthash) {
         fairy_session = fairy_session || this.fairy_session;
         value = value === 0 ? '0' : value;
-        const result = this.meta_rpc_method("putstoragewithsession", [fairy_session, contract_scripthash.value, this.all_to_base64(key), this.all_to_base64(value)]);
+        const result = await this.meta_rpc_method("putstoragewithsession", [fairy_session, contract_scripthash.value, this.all_to_base64(key), this.all_to_base64(value)]);
         return result;
     }
 
-    set_neo_balance(balance, fairy_session = null, account = null) {
+    async set_neo_balance(balance, fairy_session = null, account = null) {
         balance = parseInt(balance);
         fairy_session = fairy_session || this.fairy_session;
         account = account || this.wallet_scripthash;
         if (!account) {
             throw new Error('No account specified');
         }
-        return this.meta_rpc_method("setneobalance", [fairy_session, account.value, balance]);
+        return await this.meta_rpc_method("setneobalance", [fairy_session, account.value, balance]);
     }
 
-    set_gas_balance(balance, fairy_session = null, account = null) {
+    async set_gas_balance(balance, fairy_session = null, account = null) {
         balance = parseInt(balance);
         fairy_session = fairy_session || this.fairy_session;
         account = account || this.wallet_scripthash;
-        return this.meta_rpc_method("setgasbalance", [fairy_session, account.value, balance]);
+        return await this.meta_rpc_method("setgasbalance", [fairy_session, account.value, balance]);
     }
 
-    set_nep17_balance(contract, balance, fairy_session = null, account = null, byte_prefix = 1) {
+    async set_nep17_balance(contract, balance, fairy_session = null, account = null, byte_prefix = 1) {
         if (byte_prefix >= 256 || byte_prefix < 0) {
             throw new Error(`Only 0<=byte_prefix<=255 accepted. Got ${byte_prefix}`);
         }
         fairy_session = fairy_session || this.fairy_session;
         account = account || this.wallet_scripthash;
-        return this.meta_rpc_method("setnep17balance", [fairy_session, contract.value, account.value, balance, byte_prefix]);
+        return await this.meta_rpc_method("setnep17balance", [fairy_session, contract.value, account.value, balance, byte_prefix]);
     }
 
     /* Fairy debugger features! */
 
     // debug info and file names
-    set_debug_info(nefdbgnfo, dumpnef_content, contract_scripthash = null) {
+    async set_debug_info(nefdbgnfo, dumpnef_content, contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
-        const result = this.meta_rpc_method("setdebuginfo", [contract_scripthash.value, this.all_to_base64(nefdbgnfo), dumpnef_content]);
+        const result = await this.meta_rpc_method("setdebuginfo", [contract_scripthash.value, this.all_to_base64(nefdbgnfo), dumpnef_content]);
         return Object.fromEntries(Object.entries(result).map(([k, v]) => [new Hash160Str(k), v]));
     }
 
-    list_debug_info() {
-        const result = this.meta_rpc_method("listdebuginfo", []);
+    async list_debug_info() {
+        const result = await this.meta_rpc_method("listdebuginfo", []);
         return result.map(s => new Hash160Str(s));
     }
 
-    list_filenames_of_contract(contract_scripthash = null) {
+    async list_filenames_of_contract(contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
-        const result = this.meta_rpc_method("listfilenamesofcontract", [contract_scripthash.value]);
+        const result = await this.meta_rpc_method("listfilenamesofcontract", [contract_scripthash.value]);
         return result.map(s => new Hash160Str(s));
     }
 
-    delete_debug_info(contract_scripthashes) {
+    async delete_debug_info(contract_scripthashes) {
         if (contract_scripthashes instanceof Hash160Str) {
-            const result = this.meta_rpc_method("deletedebuginfo", [contract_scripthashes.value]);
+            const result = await this.meta_rpc_method("deletedebuginfo", [contract_scripthashes.value]);
             return { [new Hash160Str(Object.keys(result)[0])]: Object.values(result)[0] };
         } else {
-            const result = this.meta_rpc_method("deletedebuginfo", contract_scripthashes.map(h => h.value));
+            const result = await this.meta_rpc_method("deletedebuginfo", contract_scripthashes.map(h => h.value));
             return Object.fromEntries(Object.entries(result).map(([k, v]) => [new Hash160Str(k), v]));
         }
     }
 
     // breakpoints
-    set_assembly_breakpoints(instruction_pointers, contract_scripthash = null) {
+    async set_assembly_breakpoints(instruction_pointers, contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
         if (typeof instruction_pointers === 'number') {
-            return this.meta_rpc_method("setassemblybreakpoints", [contract_scripthash.value, instruction_pointers]);
+            return await this.meta_rpc_method("setassemblybreakpoints", [contract_scripthash.value, instruction_pointers]);
         } else {
-            return this.meta_rpc_method("setassemblybreakpoints", [contract_scripthash.value, ...instruction_pointers]);
+            return await this.meta_rpc_method("setassemblybreakpoints", [contract_scripthash.value, ...instruction_pointers]);
         }
     }
 
-    list_assembly_breakpoints(contract_scripthash = null) {
+    async list_assembly_breakpoints(contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
-        const result = this.meta_rpc_method("listassemblybreakpoints", [contract_scripthash.value]);
+        const result = await this.meta_rpc_method("listassemblybreakpoints", [contract_scripthash.value]);
         return result;
     }
 
-    delete_assembly_breakpoints(instruction_pointers = null, contract_scripthash = null) {
+    async delete_assembly_breakpoints(instruction_pointers = null, contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
         instruction_pointers = instruction_pointers || [];
         if (typeof instruction_pointers === 'number') {
-            return this.meta_rpc_method("deleteassemblybreakpoints", [contract_scripthash.value, instruction_pointers]);
+            return await this.meta_rpc_method("deleteassemblybreakpoints", [contract_scripthash.value, instruction_pointers]);
         } else {
-            return this.meta_rpc_method("deleteassemblybreakpoints", [contract_scripthash.value, ...instruction_pointers]);
+            return await this.meta_rpc_method("deleteassemblybreakpoints", [contract_scripthash.value, ...instruction_pointers]);
         }
     }
 
-    set_source_code_breakpoint(filename, line_num, contract_scripthash = null) {
+    async set_source_code_breakpoint(filename, line_num, contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
-        return this.meta_rpc_method("setsourcecodebreakpoints", [contract_scripthash.value, filename, line_num]);
+        return await this.meta_rpc_method("setsourcecodebreakpoints", [contract_scripthash.value, filename, line_num]);
     }
 
-    set_source_code_breakpoints(filename_and_line_num, contract_scripthash = null) {
+    async set_source_code_breakpoints(filename_and_line_num, contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
-        return this.meta_rpc_method("setsourcecodebreakpoints", [contract_scripthash.value, ...filename_and_line_num]);
+        return await this.meta_rpc_method("setsourcecodebreakpoints", [contract_scripthash.value, ...filename_and_line_num]);
     }
 
-    list_source_code_breakpoints(contract_scripthash = null) {
+    async list_source_code_breakpoints(contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
-        const result = this.meta_rpc_method("listsourcecodebreakpoints", [contract_scripthash.value]);
+        const result = await this.meta_rpc_method("listsourcecodebreakpoints", [contract_scripthash.value]);
         return result;
     }
 
-    delete_source_code_breakpoint(filename, line_num, contract_scripthash = null) {
+    async delete_source_code_breakpoint(filename, line_num, contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
-        return this.meta_rpc_method("deletesourcecodebreakpoints", [contract_scripthash.value, filename, line_num]);
+        return await this.meta_rpc_method("deletesourcecodebreakpoints", [contract_scripthash.value, filename, line_num]);
     }
 
-    delete_source_code_breakpoints(filename_and_line_num = null, contract_scripthash = null) {
+    async delete_source_code_breakpoints(filename_and_line_num = null, contract_scripthash = null) {
         contract_scripthash = contract_scripthash || this.contract_scripthash;
         filename_and_line_num = filename_and_line_num || [];
-        return this.meta_rpc_method("deletesourcecodebreakpoints", [contract_scripthash.value, ...filename_and_line_num]);
+        return await this.meta_rpc_method("deletesourcecodebreakpoints", [contract_scripthash.value, ...filename_and_line_num]);
     }
 
-    delete_debug_snapshots(fairy_sessions) {
+    async delete_debug_snapshots(fairy_sessions) {
         if (typeof fairy_sessions === 'string') {
-            return this.meta_rpc_method("deletedebugsnapshots", [fairy_sessions]);
+            return await this.meta_rpc_method("deletedebugsnapshots", [fairy_sessions]);
         } else {
-            return this.meta_rpc_method("deletedebugsnapshots", fairy_sessions);
+            return await this.meta_rpc_method("deletedebugsnapshots", fairy_sessions);
         }
     }
 
-    list_debug_snapshots() {
-        return this.meta_rpc_method("listdebugsnapshots", []);
+    async list_debug_snapshots() {
+        return await this.meta_rpc_method("listdebugsnapshots", []);
     }
 
-    get_method_by_instruction_pointer(instruction_pointer, scripthash = null) {
+    async get_method_by_instruction_pointer(instruction_pointer, scripthash = null) {
         scripthash = scripthash || this.contract_scripthash;
-        return this.meta_rpc_method("getmethodbyinstructionpointer", [scripthash.value, instruction_pointer]);
+        return await this.meta_rpc_method("getmethodbyinstructionpointer", [scripthash.value, instruction_pointer]);
     }
 
-    debug_any_function_with_session(scripthash, operation, params = null, signers = null, relay = null,
+    async debug_any_function_with_session(scripthash, operation, params = null, signers = null, relay = null,
         do_not_raise_on_result = false, with_print = true, fairy_session = null) {
         scripthash = scripthash || this.contract_scripthash;
         fairy_session = fairy_session || this.fairy_session;
@@ -985,7 +986,7 @@ class FairyClient {
             params.map(param => this.parse_params(param)),
             signers.map(signer => signer.to_dict()),
         ];
-        const rawResult = this.meta_rpc_method_with_raw_result(
+        const rawResult = await this.meta_rpc_method_with_raw_result(
             'debugfunctionwithsession',
             [fairy_session, relay || (relay === null && this.function_default_relay), ...parameters]
         );
@@ -993,108 +994,108 @@ class FairyClient {
         return RpcBreakpoint.from_raw_result(result);
     }
 
-    debug_function_with_session(operation, params = null, signers = null, relay = null,
+    async debug_function_with_session(operation, params = null, signers = null, relay = null,
         do_not_raise_on_result = false, with_print = true, fairy_session = null) {
         return this.debug_any_function_with_session(
             this.contract_scripthash, operation,
-            params = params, signers = signers, relay = relay, do_not_raise_on_result = do_not_raise_on_result,
-            with_print = with_print, fairy_session = fairy_session
+            params, signers, relay, do_not_raise_on_result,
+            with_print, fairy_session
         );
     }
 
-    debug_continue(fairy_session = null) {
+    async debug_continue(fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("debugcontinue", [fairy_session]);
+        const result = await this.meta_rpc_method_with_raw_result("debugcontinue", [fairy_session]);
         return RpcBreakpoint.from_raw_result(result);
     }
 
-    debug_step_into(fairy_session = null) {
+    async debug_step_into(fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("debugstepinto", [fairy_session]);
+        const result = await this.meta_rpc_method_with_raw_result("debugstepinto", [fairy_session]);
         return RpcBreakpoint.from_raw_result(result);
     }
 
-    debug_step_out(fairy_session = null) {
+    async debug_step_out(fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("debugstepout", [fairy_session]);
+        const result = await this.meta_rpc_method_with_raw_result("debugstepout", [fairy_session]);
         return RpcBreakpoint.from_raw_result(result);
     }
 
-    debug_step_over(fairy_session = null) {
+    async debug_step_over(fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("debugstepover", [fairy_session]);
+        const result = await this.meta_rpc_method_with_raw_result("debugstepover", [fairy_session]);
         return RpcBreakpoint.from_raw_result(result);
     }
 
-    debug_step_over_source_code(fairy_session = null) {
+    async debug_step_over_source_code(fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("debugstepoversourcecode", [fairy_session]);
+        const result = await this.meta_rpc_method_with_raw_result("debugstepoversourcecode", [fairy_session]);
         return RpcBreakpoint.from_raw_result(result);
     }
 
-    debug_step_over_assembly(fairy_session = null) {
+    async debug_step_over_assembly(fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("debugstepoverassembly", [fairy_session]);
+        const result = await this.meta_rpc_method_with_raw_result("debugstepoverassembly", [fairy_session]);
         return RpcBreakpoint.from_raw_result(result);
     }
 
-    get_invocation_stack(fairy_session = null) {
+    async get_invocation_stack(fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        return this.meta_rpc_method("getinvocationstack", [fairy_session]);
+        return await this.meta_rpc_method("getinvocationstack", [fairy_session]);
     }
 
-    get_local_variables(invocation_stack_index = 0, fairy_session = null) {
+    async get_local_variables(invocation_stack_index = 0, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("getlocalvariables", [fairy_session, invocation_stack_index]);
+        const result = await this.meta_rpc_method_with_raw_result("getlocalvariables", [fairy_session, invocation_stack_index]);
         return this.parse_stack_from_raw_result(result);
     }
 
-    get_arguments(invocation_stack_index = 0, fairy_session = null) {
+    async get_arguments(invocation_stack_index = 0, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("getarguments", [fairy_session, invocation_stack_index]);
+        const result = await this.meta_rpc_method_with_raw_result("getarguments", [fairy_session, invocation_stack_index]);
         return this.parse_stack_from_raw_result(result);
     }
 
-    get_static_fields(invocation_stack_index = 0, fairy_session = null) {
+    async get_static_fields(invocation_stack_index = 0, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("getstaticfields", [fairy_session, invocation_stack_index]);
+        const result = await this.meta_rpc_method_with_raw_result("getstaticfields", [fairy_session, invocation_stack_index]);
         return this.parse_stack_from_raw_result(result);
     }
 
-    get_evaluation_stack(invocation_stack_index = 0, fairy_session = null) {
+    async get_evaluation_stack(invocation_stack_index = 0, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("getevaluationstack", [fairy_session, invocation_stack_index]);
+        const result = await this.meta_rpc_method_with_raw_result("getevaluationstack", [fairy_session, invocation_stack_index]);
         return this.parse_stack_from_raw_result(result);
     }
 
-    get_instruction_pointer(invocation_stack_index = 0, fairy_session = null) {
+    async get_instruction_pointer(invocation_stack_index = 0, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("getinstructionpointer", [fairy_session, invocation_stack_index]);
+        const result = await this.meta_rpc_method_with_raw_result("getinstructionpointer", [fairy_session, invocation_stack_index]);
         return this.parse_stack_from_raw_result(result)[0];
     }
 
-    get_variable_value_by_name(variable_name, invocation_stack_index = 0, fairy_session = null) {
+    async get_variable_value_by_name(variable_name, invocation_stack_index = 0, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("getvariablevaluebyname", [fairy_session, variable_name, invocation_stack_index]);
+        const result = await this.meta_rpc_method_with_raw_result("getvariablevaluebyname", [fairy_session, variable_name, invocation_stack_index]);
         return this.parse_stack_from_raw_result(result);
     }
 
-    get_variable_names_and_values(invocation_stack_index = 0, fairy_session = null) {
+    async get_variable_names_and_values(invocation_stack_index = 0, fairy_session = null) {
         fairy_session = fairy_session || this.fairy_session;
-        const result = this.meta_rpc_method_with_raw_result("getvariablenamesandvalues", [fairy_session, invocation_stack_index]);
+        const result = await this.meta_rpc_method_with_raw_result("getvariablenamesandvalues", [fairy_session, invocation_stack_index]);
         return this.parse_stack_from_raw_result(result);
     }
 
-    get_contract_opcode_coverage(scripthash = null) {
+    async get_contract_opcode_coverage(scripthash = null) {
         scripthash = scripthash || this.contract_scripthash;
-        const rawResult = this.meta_rpc_method_with_raw_result("getcontractopcodecoverage", [scripthash]);
+        const rawResult = await this.meta_rpc_method_with_raw_result("getcontractopcodecoverage", [scripthash]);
         const result = rawResult.result;
         return Object.fromEntries(Object.entries(result).map(([k, v]) => [parseInt(k), v]));
     }
 
-    clear_contract_opcode_coverage(scripthash = null) {
+    async clear_contract_opcode_coverage(scripthash = null) {
         scripthash = scripthash || this.contract_scripthash;
-        const rawResult = this.meta_rpc_method_with_raw_result("clearcontractopcodecoverage", [scripthash]);
+        const rawResult = await this.meta_rpc_method_with_raw_result("clearcontractopcodecoverage", [scripthash]);
         const result = rawResult.result;
         return Object.fromEntries(Object.entries(result).map(([k, v]) => [parseInt(k), v]));
     }

@@ -1,6 +1,6 @@
 import React, {Component} from "react";
-import {SwapOutlined} from "@ant-design/icons";
-import fetchWithTimeout from "../utils/fetchWithTimeout";
+import { SwapOutlined } from "@ant-design/icons";
+import { FairyClient } from "../libs/NeoFairyClient"
 import "./index.css"
 
 let colorWhite = "#FFFFFF";
@@ -78,23 +78,23 @@ class ServerSelect extends Component {
         this.standbyServerComment.current.style.backgroundColor = colorWhite;
         let _this = this;
         await Promise.all([
-            fetchWithTimeout(this.activeServer.current.value, {mode: 'cors'}).then(
-                function (resolve){
-                    if(resolve.status === 200 && resolve.ok)
+            new FairyClient(this.activeServer.current.value).list_snapshots().then(
+                function (resolve) {
+                    //if (resolve.status === 200 && resolve.ok)
                         _this.activeServerComment.current.style.backgroundColor = colorGreen;
-                    else
-                        _this.activeServerComment.current.style.backgroundColor = colorYellow;
+                //    else
+                //        _this.activeServerComment.current.style.backgroundColor = colorYellow;
                 },
-                function (reject){
+                function (reject) {
                     _this.activeServerComment.current.style.backgroundColor = colorRed;
                 }
             ),
-            fetchWithTimeout(this.standbyServer.current.value, {mode: 'cors'}).then(
+            new FairyClient(this.standbyServer.current.value).list_snapshots().then(
                 function (resolve){
-                    if(resolve.status === 200 && resolve.ok)
+                    //if(resolve.status === 200 && resolve.ok)
                         _this.standbyServerComment.current.style.backgroundColor = colorGreen;
-                    else
-                        _this.standbyServerComment.current.style.backgroundColor = colorYellow;
+                //    else
+                //        _this.standbyServerComment.current.style.backgroundColor = colorYellow;
                 },
                 function (reject){
                     _this.standbyServerComment.current.style.backgroundColor = colorRed;
