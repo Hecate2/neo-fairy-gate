@@ -1,35 +1,53 @@
 import { to_list } from "./misc";
 
 class UInt160 {
-    constructor(buffer) {
-        if (buffer.length !== 20) {
+    constructor(arrayBuffer) {
+        if (arrayBuffer.byteLength !== 20) {
             throw new Error('Invalid buffer length');
         }
 
-        this.buffer = buffer;
+        this.buffer = arrayBuffer;
     }
 
-    static deserialize_from_bytes(buffer) {
-        return new UInt160(buffer);
+    static deserialize_from_bytes(arrayBuffer) {
+        return new UInt160(arrayBuffer);
+    }
+
+    toHex() {
+        const hex = [];
+        const view = new DataView(this.buffer);
+            for (let i = 0; i < this.buffer.byteLength; i++) {
+            hex.push(view.getUint8(i).toString(16).padStart(2, '0'));
+        }
+        return hex.join('');
     }
 }
 
 class UInt256 {
-    constructor(buffer) {
-        if (buffer.length !== 32) {
+    constructor(arrayBuffer) {
+        if (arrayBuffer.byteLength !== 32) {
             throw new Error('Invalid byte length');
         }
-        this.buffer = buffer;
+        this.buffer = arrayBuffer;
     }
 
-    static deserialize_from_bytes(buffer) {
-        return new UInt256(buffer);
+    static deserialize_from_bytes(arrayBuffer) {
+        return new UInt256(arrayBuffer);
+    }
+
+    toHex() {
+        const hex = [];
+        const view = new DataView(this.buffer);
+        for (let i = 0; i < this.buffer.byteLength; i++) {
+            hex.push(view.getUint8(i).toString(16).padStart(2, '0'));
+        }
+        return hex.join('');
     }
 }
 
 class HashStr extends String {
     constructor(string) {
-        super();
+        super(string);
         // check length of string here
         // assert string.startsWith('0x')
         this.string = string;
@@ -84,7 +102,7 @@ class Hash256Str extends HashStr {
     constructor(string) {
         // assert string.startsWith('0x')
         if (typeof string === 'object' && string.constructor.name === 'UInt256') {
-            string = string.toHex().slice(2);
+            string = string.toHex();
             string = string.match(/.{1,2}/g).reverse().join('');
             string = '0x' + string.padEnd(64, '0');
         }
@@ -96,10 +114,7 @@ class Hash256Str extends HashStr {
     }
 
     static from_UInt256(u) {  // TODO
-        let u_bytearray = u.toBigEndianArray();
-        u_bytearray.reverse();
-        let hash256str = u_bytearray.toHex();
-        return new Hash256Str(hash256str);
+        return new Hash256Str(u);
     }
 
     static zero() {
@@ -118,7 +133,7 @@ class Hash160Str extends HashStr {
     constructor(string) {
         // assert string.startsWith('0x')
         if (typeof string === 'object' && string.constructor.name === 'UInt160') {
-            string = string.toHex().slice(2);
+            string = string.toHex();
             string = string.match(/.{1,2}/g).reverse().join('');
             string = '0x' + string.padEnd(40, '0');
         }
@@ -130,10 +145,7 @@ class Hash160Str extends HashStr {
     }
 
     static from_UInt160(u) {  // TODO
-        let u_bytearray = u.toBigEndianArray();
-        u_bytearray.reverse();
-        let hash160str = u_bytearray.toHex();
-        return new Hash160Str(hash160str);
+        return new Hash160Str(u);
     }
 
     //static from_address(address) {
@@ -214,4 +226,4 @@ class Signer {
     }
 }
 
-export { UInt160, UInt256, HashStr, Hash160Str, Hash256Str, PublicKeyStr, WitnessScope, Signer }
+export { UInt160, UInt256, HashStr, Hash160Str, Hash256Str, PublicKeyStr, WitnessScope, Signer };

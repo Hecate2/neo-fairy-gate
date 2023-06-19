@@ -4,7 +4,6 @@ import fetchWithTimeout from "../utils/fetchWithTimeout";
 //const os = require('os');
 //const path = require('path');
 //const fs = require('fs');
-const base64 = require('base64-js');
 
 const default_request_timeout = 1_000;
 
@@ -182,7 +181,7 @@ class FairyClient {
             const values = base64_struct['value'];
             for (const value of values) {
                 if (value['type'] === 'ByteString') {
-                    processed_struct.push(base64.decode(value['value']));
+                    processed_struct.push(new TextDecoder().decode(FairyClient.base64ToArrayBuffer(value['value'])));
                 }
             }
         }
@@ -382,10 +381,10 @@ class FairyClient {
             try {
                 return new window.TextDecoder("utf-8", { fatal: true }).decode(byte_value);
             } catch (error) {
-                if (byte_value.length === 20) {
-                    return Hash160Str.from_UInt160(UInt160.fromScriptHash(byte_value));
-                } else if (byte_value.length === 32) {
-                    return Hash256Str.from_UInt256(UInt256.fromUint8ArrayBE(byte_value));
+                if (byte_value.byteLength === 20) {
+                    return Hash160Str.from_UInt160(UInt160.deserialize_from_bytes(byte_value));
+                } else if (byte_value.byteLength === 32) {
+                    return Hash256Str.from_UInt256(UInt256.deserialize_from_bytes(byte_value));
                 } else {
                     // may be an N3 address starting with 'N'
                     // TODO: decode to N3 address
@@ -487,7 +486,7 @@ class FairyClient {
             } catch (error) {
                 return {
                     'type': 'ByteArray',
-                    'value': Buffer.from(param).toString('base64'),
+                    'value': FairyClient.all_to_base64(param),
                 };
             }
         } else if (Array.isArray(param)) {
@@ -756,7 +755,7 @@ class FairyClient {
         }
         try {
             const signers_list = Array.isArray(signers) ? signers.map(signer => signer.to_dict()) : to_list(signers || this.signers).map(signer => signer.to_dict());
-            const result = await this.meta_rpc_method("virtualdeploy", [fairy_session, Buffer.from(nef).toString('base64'), manifest, signers_list])[fairy_session];
+            const result = await this.meta_rpc_method("virtualdeploy", [fairy_session, FairyClient.all_to_base64(nef), manifest, signers_list])[fairy_session];
             return new Hash160Str(result);
         } catch (error) {
             console.error(`If you have weird exceptions from this method, check if you have written any \`null\` to contract storage in \`_deploy\` method. Especially, consider marking your \`UInt160\` properties of class as \`static readonly UInt160\` in your contract.\nError: ${error}`);
@@ -817,13 +816,16 @@ class FairyClient {
 
     static all_to_base64(key) {
         if (typeof key === 'string') {
-            key = Buffer.from(key, 'utf8');
+            key = new TextEncoder().encode(key);
         }
         if (typeof key === 'number') {
             key = Interpreter.int_to_bytes(key);
         }
-        if (Buffer.isBuffer(key)) {
-            key = base64.fromByteArray(key);
+        if (key.constructor === ArrayBuffer) {
+            key = window.btoa(  // base64
+                new Uint8Array(key)
+                    .reduce((data, byte) => data + String.fromCharCode(byte), '')
+            );
         } else {
             throw new Error(`Unexpected input type ${typeof key} ${key}`);
         }

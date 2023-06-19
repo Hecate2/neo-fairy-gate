@@ -34,7 +34,9 @@ class Upload extends Component{
       Promise.all([
           contracts.map((contract) => {
               return client.invokefunction_of_any_contract(contractManagement, "getContract", contract)
-                  .then(([id, updateCounter, scriptHash, nef, manifest]) => { console.log([id, updateCounter, scriptHash, nef, manifest]); });
+                  .then(([id, updateCounter, scriptHash, nef, manifest]) => {
+                      console.log([id, updateCounter, scriptHash, nef, manifest]);
+                  });
           })
       ])
   }
@@ -157,7 +159,7 @@ class SingleContract extends Component{
     }
 
     static saveToStorage(props) {
-        if (typeof (props.name) !== "string") throw "Invalid contract name!";
+        if (typeof (props.name) !== "string") throw new Error("Invalid contract name!");
         let fairyContracts = JSON.parse(localStorage.getItem("fairyContracts"));
         if (fairyContracts === null || fairyContracts === undefined)
             fairyContracts = {};
