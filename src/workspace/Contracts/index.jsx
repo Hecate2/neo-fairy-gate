@@ -25,10 +25,18 @@ class Upload extends Component{
     let url = new URL(window.parent.document.getElementById("standbyServer").value);
     this.importFromRpcUrl(url);
   }
-  importFromRpcUrl(url){
+  importFromRpcUrl(url) {
+      url = url.toString();
       let contracts = [...this.contractAddressInput.current.value.matchAll(new RegExp(/0[xX][0-9a-fA-F]{40}/g))];
-      let client = new FairyClient(url);
-      client.invokefunction_of_any_contract()
+      // [[Hash160Str("0xd2a4cff31913016155e38e474a2c06d08be276cf")], [Hash160Str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"]]
+      let client = new FairyClient({ target_url: url, function_default_relay: false});
+      let contractManagement = new Hash160Str("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd");
+      Promise.all([
+          contracts.map((contract) => {
+              return client.invokefunction_of_any_contract(contractManagement, "getContract", contract)
+                  .then(([id, updateCounter, scriptHash, nef, manifest]) => { console.log([id, updateCounter, scriptHash, nef, manifest]); });
+          })
+      ])
   }
   importFromUpload(f){
     // let files = [f.target.files[0], f.target.files[1], f.target.files[2], f.target.files[3]];

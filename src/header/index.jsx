@@ -78,7 +78,7 @@ class ServerSelect extends Component {
         this.standbyServerComment.current.style.backgroundColor = colorWhite;
         let _this = this;
         await Promise.all([
-            new FairyClient(this.activeServer.current.value).list_snapshots().then(
+            new FairyClient({ target_url: this.activeServer.current.value }).list_snapshots().then(
                 function (resolve) {
                     //if (resolve.status === 200 && resolve.ok)
                         _this.activeServerComment.current.style.backgroundColor = colorGreen;
@@ -89,7 +89,7 @@ class ServerSelect extends Component {
                     _this.activeServerComment.current.style.backgroundColor = colorRed;
                 }
             ),
-            new FairyClient(this.standbyServer.current.value).list_snapshots().then(
+            new FairyClient({ target_url: this.standbyServer.current.value }).list_snapshots().then(
                 function (resolve){
                     //if(resolve.status === 200 && resolve.ok)
                         _this.standbyServerComment.current.style.backgroundColor = colorGreen;

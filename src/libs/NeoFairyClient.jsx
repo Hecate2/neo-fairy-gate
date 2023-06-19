@@ -71,8 +71,8 @@ function to_list(element) {
 }
 
 class FairyClient {
-    constructor(
-        target_url = 'http://localhost:16868',
+    constructor({
+        target_url = 'http://localhost:16868',  // type URL or string
         wallet_address_or_scripthash = null,
         contract_scripthash = null,
         signers = null,
@@ -91,7 +91,7 @@ class FairyClient {
         auto_preparation = true,
         hook_function_after_rpc_call = null,
         default_fairy_wallet_scripthash = new Hash160Str('0xd2cefc96ad5cb7b625a0986ef6badde0533731d5')
-    ) {
+    }) {
         this.target_url = target_url;
         this.contract_scripthash = contract_scripthash;
         //this.requests_session = requests_session;
@@ -333,6 +333,15 @@ class FairyClient {
         return result_dict;
     }
 
+    static base64ToArrayBuffer(base64String) {
+        var binaryString = window.atob(base64String);
+        var bytes = new Uint8Array(binaryString.length);
+        for (var i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
     parse_single_item(item) {
         if ('iterator' in item) {
             item = item['iterator'];
@@ -369,9 +378,9 @@ class FairyClient {
         } else if (_type === 'Boolean') {
             return value;
         } else if (_type === 'ByteString' || _type === 'Buffer') {
-            const byte_value = Buffer.from(value, 'base64');
+            const byte_value = FairyClient.base64ToArrayBuffer(value);
             try {
-                return byte_value.toString();
+                return new window.TextDecoder("utf-8", { fatal: true }).decode(byte_value);
             } catch (error) {
                 if (byte_value.length === 20) {
                     return Hash160Str.from_UInt160(UInt160.fromScriptHash(byte_value));
@@ -431,7 +440,7 @@ class FairyClient {
             // special case for script hash strings
             return {
                 'type': 'Hash160',
-                'value': Hash160Str.parse(param).toString(),
+                'value': param.toString(),
             };
         } else if (param instanceof Hash160Str) {
             return {
@@ -484,14 +493,14 @@ class FairyClient {
         } else if (Array.isArray(param)) {
             return {
                 'type': 'Array',
-                'value': param.map(p => this.parse_params(p)),
+                'value': param.map(p => FairyClient.parse_params(p)),
             };
         } else if (type_param === 'object' && param !== null) {
             return {
                 'type': 'Map',
                 'value': Object.entries(param).map(([k, v]) => ({
-                    'key': this.parse_params(k),
-                    'value': this.parse_params(v),
+                    'key': FairyClient.parse_params(k),
+                    'value': FairyClient.parse_params(v),
                 })),
             };
         } else if (param === null || typeof param === 'undefined') {
@@ -516,7 +525,7 @@ class FairyClient {
         const parameters = [
             scripthash.toString(),
             operation,
-            params.map(param => this.parse_params(param)),
+            params.map(param => FairyClient.parse_params(param)),
             signers.map(signer => signer.to_dict()),
         ];
         let result;
@@ -545,7 +554,7 @@ class FairyClient {
         const parsed_call_arguments = call_arguments.map(call => [
             typeof call[0] === 'string' ? call[0] : this.contract_scripthash.toString(),
             typeof call[0] === 'string' ? call[1] : call[0],
-            (call.length >= 3 ? call[2].map(param => this.parse_params(param)) : []),
+            (call.length >= 3 ? call[2].map(param => FairyClient.parse_params(param)) : []),
         ]);
         return await this.meta_rpc_method('invokemanywithsession', [fairy_session, relay || (relay === null && this.function_default_relay), parsed_call_arguments, signers.map(signer => signer.to_dict())], false, do_not_raise_on_result);
     }
@@ -983,7 +992,7 @@ class FairyClient {
         const parameters = [
             scripthash.value,
             operation,
-            params.map(param => this.parse_params(param)),
+            params.map(param => FairyClient.parse_params(param)),
             signers.map(signer => signer.to_dict()),
         ];
         const rawResult = await this.meta_rpc_method_with_raw_result(
