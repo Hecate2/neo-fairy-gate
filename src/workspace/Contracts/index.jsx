@@ -36,6 +36,15 @@ class Upload extends Component{
               return client.invokefunction_of_any_contract(contractManagement, "getContract", contract)
                   .then(([id, updateCounter, scriptHash, nef, manifest]) => {
                       console.log([id, updateCounter, scriptHash, nef, manifest]);
+                      let args = {};
+                      args.name = manifest[0];
+                      args.manifest = manifest.toString();
+                      args.nef = window.btoa(  // base64
+                          new Uint8Array(nef)
+                              .reduce((data, byte) => data + String.fromCharCode(byte), '')
+                      );
+                      args.scriptHash = scriptHash;
+                      SingleContract.saveToStorage(args);
                   });
           })
       ])
@@ -105,7 +114,6 @@ class Upload extends Component{
     }).then(() => {
         // todo: name, ... in args
         SingleContract.saveToStorage(args);
-        if (contractInstance != null) contractInstance.reRender();
     });
   }
 
@@ -176,6 +184,7 @@ class SingleContract extends Component{
         fairyContracts[props.name] = oldContract;
         localStorage.setItem("fairyContracts", JSON.stringify(fairyContracts));
         console.log(`Saved contract ${props.name}:`, fairyContracts[props.name]);
+        if (contractInstance != null) contractInstance.reRender();
     }
 
     static loadFromStorage(name) {
