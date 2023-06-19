@@ -4,6 +4,8 @@ import { FairyClient } from "../../libs/NeoFairyClient";
 import { Hash160Str } from "../../libs/types";
 import "./index.css"
 
+let contractInstance = null;
+
 class Upload extends Component{
   constructor(props) {
     super(props);
@@ -93,6 +95,7 @@ class Upload extends Component{
     }).then(() => {
         // todo: name, ... in args
         SingleContract.saveToStorage(args);
+        if (contractInstance != null) contractInstance.reRender();
     });
   }
 
@@ -173,23 +176,30 @@ class SingleContract extends Component{
   render() {
     return(
         <div className="SingleContract">
-            {this.name}
+            {this.props.name}
         </div>
     )
   }
 }
 
 class ManageContracts extends Component{
+    constructor() {
+        super();
+        contractInstance = this;
+    }
+
     static allContracts() {
         return Object.values(JSON.parse(localStorage["fairyContracts"])).map(v => new SingleContract(v));
     }
+
+    reRender() { this.forceUpdate(); }
 
     render() {
         const contracts = ManageContracts.allContracts();
         return (
             <div className="ManageContracts" id="manageContracts">Contracts
-                {contracts.map(({ name, scriptHash, nef }) => (
-                    <p>{name}</p>
+                {contracts.map((singleContract) => (
+                    <p>{singleContract.render()}</p>
                 ))}
             </div>
         );
