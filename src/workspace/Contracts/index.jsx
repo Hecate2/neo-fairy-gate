@@ -211,14 +211,29 @@ class SingleContract extends Component{
     }
 
     render() {
-        return(
-            <div className="SingleContract">
-                {this.props.name}
-                <span className="DeleteButton">
+        return (
+            <div className="SingleContract" style={{ width: "fit-content" }}>
+                <div>
+                    <span style={{ backgroundColor: "lightcyan" }}>{this.props.name}</span>
+                    <span style={{ backgroundColor: "#B4CFA6" }}>{FairyClient.base64ToArrayBuffer(this.props.nef).byteLength} Bytes</span>
+                </div>
+                <div onClick={() => {
+                    if (this.props.scriptHash)
+                        navigator.clipboard.writeText(this.props.scriptHash);
+                }} style={{ cursor: "copy", backgroundColor: this.props.scriptHash ? "lightcyan" : "cornsilk" }}>
+                    {this.props.scriptHash ?? "SCRIPTHASH UNKNOWN: NOT DEPLOYED--------"}
+                </div>
+                <div>
+                    <span style={{ backgroundColor: this.props.nef ? "lightcyan" : "coral" }}>nef</span>
+                    <span style={{ backgroundColor: this.props.manifest ? "lightcyan" : "coral" }}>manifest</span>
+                    <span style={{ backgroundColor: this.props.dumpnef ? "lightcyan" : "cornsilk" }}>dumpnef</span>
+                    <span style={{ backgroundColor: this.props.nefdbgnfo ? "lightcyan" : "cornsilk" }}>nefdbgnfo</span>
+                </div>
+                <div className="DeleteButton">
                     <button onClick={this.deleteFromStorage}>
                         <DeleteOutlined /> DELETE
                     </button>
-                </span>
+                </div>
             </div>
         )
     }
@@ -240,7 +255,7 @@ class ManageContracts extends Component{
     render() {
         const contracts = ManageContracts.allContracts();
         return (
-            <div className="ManageContracts" id="manageContracts">Contracts
+            <div className="ManageContracts" id="manageContracts">
                 {contracts.map((singleContract) => (
                     <p>{singleContract.render()}</p>
                 ))}

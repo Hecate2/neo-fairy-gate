@@ -25,3 +25,12 @@
     color: white;
     background-color: blueviolet;
 }
+
+.SingleContract > div > span {
+    border: 1px solid #ccc;
+    padding: 1px 3px;
+    line-height: 167%;
+}
+.SingleContract:hover {
+    background-color: #e9dab1;
+}
