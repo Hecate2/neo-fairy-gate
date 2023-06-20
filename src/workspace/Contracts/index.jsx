@@ -1,5 +1,5 @@
 import React, {Component} from "react";
-import { ImportOutlined, UploadOutlined } from "@ant-design/icons";
+import { ImportOutlined, UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { FairyClient } from "../../libs/NeoFairyClient";
 import { Hash160Str } from "../../libs/types";
 import "./index.css"
@@ -73,48 +73,56 @@ class Upload extends Component{
     this.importFromFile(manifest, nef, dumpnef, nefdbgnfo)
   }
   importFromFile(manifest, nef, dumpnef, nefdbgnfo){
-    // console.log(nef, manifest, dumpnef, nefdbgnfo);
-    let args = {};
-    Promise.resolve().then(() => {
-      if (manifest !== undefined){
-        let reader = new FileReader();  reader.onload = (e) => {
-            args.manifest = e.target.result;
-            var json = JSON.parse(args.manifest);
-            args.name = json["name"];
-        };
-        reader.readAsText(manifest);
-      }
-    }).then(() => {
-      if (nef !== undefined){
-        let reader = new FileReader();  reader.onload = (e) => {
-            args.nef = window.btoa(  // base64
-                new Uint8Array(e.target.result)
-                    .reduce((data, byte) => data + String.fromCharCode(byte), '')
-            );
-        };
-        reader.readAsArrayBuffer(nef);
-      }
-    }).then(() => {
-      if (dumpnef !== undefined){
-        let reader = new FileReader();  reader.onload = (e) => {
-          args.dumpnef = e.target.result;
-        };
-        reader.readAsText(dumpnef);
-      }
-    }).then(() => {
-      if (nefdbgnfo !== undefined){
-        let reader = new FileReader();  reader.onload = (e) => {
-            args.nefdbgnfo = window.btoa(  // base64
-                new Uint8Array(e.target.result)
-                    .reduce((data, byte) => data + String.fromCharCode(byte), '')
-            );
-          };
-          reader.readAsArrayBuffer(nefdbgnfo);
-      }
-    }).then(() => {
-        // todo: name, ... in args
-        SingleContract.saveToStorage(args);
-    });
+      // console.log(nef, manifest, dumpnef, nefdbgnfo);
+      let args = {};
+      Promise.all([
+          new Promise(resolve => {
+              if (manifest !== undefined) {
+                  let reader = new FileReader(); reader.onload = (e) => {
+                      args.manifest = e.target.result;
+                      var json = JSON.parse(args.manifest);
+                      args.name = json["name"];
+                      resolve();
+                  };
+                  reader.readAsText(manifest);
+              }
+          }),
+          new Promise(resolve => {
+              if (nef !== undefined) {
+                  let reader = new FileReader(); reader.onload = (e) => {
+                      args.nef = window.btoa(  // base64
+                          new Uint8Array(e.target.result)
+                              .reduce((data, byte) => data + String.fromCharCode(byte), '')
+                      );
+                      resolve();
+                  };
+                  reader.readAsArrayBuffer(nef);
+              }
+          }),
+          new Promise(resolve => {
+              if (dumpnef !== undefined) {
+                  let reader = new FileReader(); reader.onload = (e) => {
+                      args.dumpnef = e.target.result;
+                      resolve();
+                  };
+                  reader.readAsText(dumpnef);
+              }
+          }),
+          new Promise(resolve => {
+              if (nefdbgnfo !== undefined) {
+                  let reader = new FileReader(); reader.onload = (e) => {
+                      args.nefdbgnfo = window.btoa(  // base64
+                          new Uint8Array(e.target.result)
+                              .reduce((data, byte) => data + String.fromCharCode(byte), '')
+                      );
+                      resolve();
+                  };
+                  reader.readAsArrayBuffer(nefdbgnfo);
+              }
+          }),
+      ]).then(() => {
+          SingleContract.saveToStorage(args);
+      });
   }
 
   render() {
@@ -157,6 +165,7 @@ class Upload extends Component{
 class SingleContract extends Component{
     constructor(props) {
         super(props);
+        this.deleteFromStorage = this.deleteFromStorage.bind(this);
 
     //    this.name = props.name;
     //    this.scriptHash = props.scriptHash;
@@ -184,7 +193,7 @@ class SingleContract extends Component{
         fairyContracts[props.name] = oldContract;
         localStorage.setItem("fairyContracts", JSON.stringify(fairyContracts));
         console.log(`Saved contract ${props.name}:`, fairyContracts[props.name]);
-        if (contractInstance != null) contractInstance.reRender();
+        if (contractInstance !== null) contractInstance.reRender();
     }
 
     static loadFromStorage(name) {
@@ -192,18 +201,33 @@ class SingleContract extends Component{
         return new SingleContract(contractJson)
     }
 
-  render() {
-    return(
-        <div className="SingleContract">
-            {this.props.name}
-        </div>
-    )
-  }
+    deleteFromStorage() {
+        let fairyContracts = JSON.parse(localStorage.getItem("fairyContracts"));
+        let contract = fairyContracts[this.props.name];
+        delete fairyContracts[this.props.name];
+        localStorage.setItem("fairyContracts", JSON.stringify(fairyContracts));
+        console.log(`Deleted contract ${this.props.name}:`, contract);
+        if (contractInstance !== null) contractInstance.reRender();
+    }
+
+    render() {
+        return(
+            <div className="SingleContract">
+                {this.props.name}
+                <span className="DeleteButton">
+                    <button onClick={this.deleteFromStorage}>
+                        <DeleteOutlined /> DELETE
+                    </button>
+                </span>
+            </div>
+        )
+    }
 }
 
 class ManageContracts extends Component{
     constructor() {
         super();
+        this.reRender = this.reRender.bind(this);
         contractInstance = this;
     }
 
