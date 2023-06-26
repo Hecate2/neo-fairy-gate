@@ -214,6 +214,11 @@ class SingleContract extends Component{
         return (
             <div className="SingleContract" style={{ width: "fit-content" }}>
                 <div>
+                    <span className="DeleteButton">
+                        <button onClick={this.deleteFromStorage}>
+                            <DeleteOutlined /> DELETE
+                        </button>
+                    </span>
                     <span style={{ backgroundColor: "lightcyan" }}>{this.props.name}</span>
                     <span style={{ backgroundColor: "#B4CFA6" }}>{FairyClient.base64ToArrayBuffer(this.props.nef).byteLength} Bytes</span>
                 </div>
@@ -229,11 +234,6 @@ class SingleContract extends Component{
                     <span style={{ backgroundColor: this.props.dumpnef ? "lightcyan" : "cornsilk" }}>dumpnef</span>
                     <span style={{ backgroundColor: this.props.nefdbgnfo ? "lightcyan" : "cornsilk" }}>nefdbgnfo</span>
                 </div>
-                <div className="DeleteButton">
-                    <button onClick={this.deleteFromStorage}>
-                        <DeleteOutlined /> DELETE
-                    </button>
-                </div>
             </div>
         )
     }
@@ -247,6 +247,7 @@ class ManageContracts extends Component{
     }
 
     static allContracts() {
+        if (!("fairyContracts" in localStorage)) return [];
         return Object.values(JSON.parse(localStorage["fairyContracts"])).map(v => new SingleContract(v));
     }
 
@@ -266,11 +267,17 @@ class ManageContracts extends Component{
 
 class Contracts extends Component{
   render() {
-    return (
-      <div className={"Contracts"}>
-        <Upload/>
-        <ManageContracts/>
-      </div>
+      return (
+        <>
+        <span>
+            <div className={"Contracts"}>
+                <Upload/>
+                <ManageContracts/>
+            </div>
+              </span>
+              <span style={{ backgroundColor: "greenyellow" }}>
+        </span>
+        </>
     );
   }
 }
