@@ -33,17 +33,14 @@ class Upload extends Component{
       let contractManagement = new Hash160Str("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd");
       Promise.all([
           contracts.map((contract) => {
-              return client.invokefunction_of_any_contract(contractManagement, "getContract", contract)
-                  .then(([id, updateCounter, scriptHash, nef, manifest]) => {
-                      console.log([id, updateCounter, scriptHash, nef, manifest]);
+              return client.get_contract(contract)
+                  .then(contractState => {
+                      console.log(contractState);
                       let args = {};
-                      args.name = manifest[0];
-                      args.manifest = manifest.toString();
-                      args.nef = window.btoa(  // base64
-                          new Uint8Array(nef)
-                              .reduce((data, byte) => data + String.fromCharCode(byte), '')
-                      );
-                      args.scriptHash = scriptHash;
+                      args.name = contractState["manifest"]["name"];
+                      args.manifest = contractState["manifest"];
+                      args.nef = contractState["nef"];  // TODO: fully bytes -> base64
+                      args.scriptHash = contractState["hash"];
                       SingleContract.saveToStorage(args);
                   });
           })
@@ -220,7 +217,11 @@ class SingleContract extends Component{
                         </button>
                     </span>
                     <span style={{ backgroundColor: "lightcyan" }}>{this.props.name}</span>
-                    <span style={{ backgroundColor: "#B4CFA6" }}>{FairyClient.base64ToArrayBuffer(this.props.nef).byteLength} Bytes</span>
+                    <span style={{ backgroundColor: "#B4CFA6" }}>{
+                        typeof (this.props.nef) === "string" ?
+                            FairyClient.base64ToArrayBuffer(this.props.nef).byteLength :
+                            FairyClient.base64ToArrayBuffer(this.props.nef.script).byteLength
+                    } Bytes</span>
                 </div>
                 <div onClick={() => {
                     if (this.props.scriptHash)
