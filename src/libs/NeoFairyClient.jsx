@@ -763,6 +763,13 @@ class FairyClient {
         }
     }
 
+    async get_contract(scripthash = null, fairy_session = null) {
+        scripthash = scripthash || this.contract_scripthash;
+        if (!scripthash) { throw new Error("No contract scripthash specified!"); }
+        fairy_session = fairy_session || this.fairy_session;
+        return await this.meta_rpc_method("getcontract", [fairy_session, scripthash]);
+    }
+
     async await_confirmed_transaction(tx_hash, verbose = true, wait_block_count = 2) {
         const result = await this.meta_rpc_method('awaitconfirmedtransaction', [tx_hash, verbose, wait_block_count]);
         if (result['state'] === 'FAULT') {
