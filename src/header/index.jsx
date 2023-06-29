@@ -20,8 +20,8 @@ class ServerSelect extends Component {
         this.switchButton = React.createRef();
         this.testButton = React.createRef();
         this.state = {
-            activeServer: new URL("http://localhost:16868"),
-            standbyServer: new URL("http://localhost:26868"),
+            activeServer: new URL(localStorage["fairyActiveServer"] ?? "http://localhost:16868"),
+            standbyServer: new URL(localStorage["fairyStandbyServer"] ?? "http://localhost:26868"),
             runningTests: []
         }
         this.headerHideHeight = "2.4em";
@@ -80,6 +80,7 @@ class ServerSelect extends Component {
         await Promise.all([
             new FairyClient({ target_url: this.activeServer.current.value }).list_snapshots().then(
                 function (resolve) {
+                    localStorage["fairyActiveServer"] = _this.activeServer.current.value.toString();
                     //if (resolve.status === 200 && resolve.ok)
                         _this.activeServerComment.current.style.backgroundColor = colorGreen;
                 //    else
@@ -90,7 +91,8 @@ class ServerSelect extends Component {
                 }
             ),
             new FairyClient({ target_url: this.standbyServer.current.value }).list_snapshots().then(
-                function (resolve){
+                function (resolve) {
+                    localStorage["fairyStandbyServer"] = _this.standbyServer.current.value.toString();
                     //if(resolve.status === 200 && resolve.ok)
                         _this.standbyServerComment.current.style.backgroundColor = colorGreen;
                 //    else
