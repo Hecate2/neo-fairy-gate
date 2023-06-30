@@ -34,3 +34,28 @@
 .SingleContract:hover {
     background-color: #e9dab1;
 }
+
+.scriptHash[title] {
+    position: relative;
+}
+
+.scriptHash[title]:after {
+    color: white;
+    font-size: 12px;
+    background-color: #192733;
+    border-radius: 10px;
+    padding-left: 2px;
+    padding-right: 4px;
+    content: attr(title);
+    position: absolute;
+    right: 5%;
+    bottom: -100%;
+    background-color: black;
+    width: max-content;
+    opacity: 0;
+    /*-webkit-transition: opacity 0.05s ease-in-out;*/
+}
+
+.scriptHash[title]:hover:after {
+    opacity: 1;
+}

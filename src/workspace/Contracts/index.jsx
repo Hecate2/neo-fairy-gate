@@ -223,10 +223,14 @@ class SingleContract extends Component{
                             FairyClient.base64ToArrayBuffer(this.props.nef.script).byteLength
                     } Bytes</span>
                 </div>
-                <div onClick={() => {
+                <div className="scriptHash" onClick={() => {
                     if (this.props.scriptHash)
                         navigator.clipboard.writeText(this.props.scriptHash);
-                }} style={{ cursor: "copy", backgroundColor: this.props.scriptHash ? "lightcyan" : "cornsilk" }}>
+                }} style={{
+                    cursor: this.props.scriptHash ? "copy" : "default",
+                    backgroundColor: this.props.scriptHash ? "lightcyan" : "cornsilk"
+                }}
+                    title={this.props.scriptHash ? "Click to copy!" : ""}>
                     {this.props.scriptHash ?? "SCRIPTHASH UNKNOWN: NOT DEPLOYED--------"}
                 </div>
                 <div>
