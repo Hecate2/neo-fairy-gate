@@ -8,8 +8,10 @@ class LeftMenuItem extends Component{
         this.icon = props.icon;
         this.text = props.text;
         this.homepage = props.homepage;
-        this.state = {active: !!props.active};
+        this.active = props.active;
+        this.hiddenLeft = false;
         this.onClick = this.onClick.bind(this);
+        this.hideOrShowText = this.hideOrShowText.bind(this);
     }
 
     onClick() {
@@ -23,15 +25,20 @@ class LeftMenuItem extends Component{
                 else
                     v.className = "LeftMenuItem";
             })
-            this.setState({active: true});
+            this.active = true;
             document.getElementById("workSpace").src = url;
         }
     }
 
+    hideOrShowText() {
+        this.hiddenLeft = !!this.hiddenLeft;
+        this.forceUpdate();
+    }
+
     render() {
         return(
-            <div id={this.text} className={this.state.active ? "LeftMenuItemSelected" : "LeftMenuItem"} onClick={this.onClick}>
-                {this.icon.render()} {this.text}
+            <div id={this.text} className={this.active ? "LeftMenuItemSelected" : "LeftMenuItem"} onClick={this.onClick}>
+                {this.icon.render()} {this.hiddenLeft ? "" : this.text}
             </div>
         )
     }
@@ -45,10 +52,17 @@ class LeftMenu extends Component {
             new LeftMenuItem({icon: EditOutlined, text: "Contracts", homepage: this.homepage, active: true}),
             new LeftMenuItem({icon: ClusterOutlined, text: "Test", homepage: this.homepage}),
         ]
+        this.onRightClick = this.onRightClick.bind(this);
     }
+
+    onRightClick(e) {
+        e.preventDefault();
+        this.menuItems.forEach((v) => v.hideOrShowText());
+    }
+
     render() {
         return(
-            <div className={"LeftMenu"} id={"leftMenu"}>
+            <div className={"LeftMenu"} id={"leftMenu"} onContextMenu={this.onRightClick}>
                 {this.menuItems.map((v) => <>{v.render()}</>)}
             </div>
         );
