@@ -12,11 +12,11 @@ function Home(){
     let leftMenu = new LeftMenu({homepage: homepage})
     let workSpace = new WorkSpace({homepage: homepage})
     return (
-    <body className={"container"}>
+    <div className={"container"}>
         <Header/>
-        <>{leftMenu.render()}</>
-        <>{workSpace.render()}</>
-    </body>
+        {leftMenu.render()}
+        {workSpace.render()}
+    </div>
     );
 }
 

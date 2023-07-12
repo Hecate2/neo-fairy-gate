@@ -36,8 +36,8 @@ class LeftMenuItem extends Component{
     }
 
     render() {
-        return(
-            <div id={this.text} className={this.active ? "LeftMenuItemSelected" : "LeftMenuItem"} onClick={this.onClick}>
+        return (
+            <div id={this.text} key={this.text} className={this.active ? "LeftMenuItemSelected" : "LeftMenuItem"} onClick={this.onClick}>
                 {this.icon.render()} {this.hiddenLeft ? "" : this.text}
             </div>
         )
@@ -61,9 +61,10 @@ class LeftMenu extends Component {
     }
 
     render() {
+        const menuItems = this.menuItems.map((v) => v.render());
         return(
             <div className={"LeftMenu"} id={"leftMenu"} onContextMenu={this.onRightClick}>
-                {this.menuItems.map((v) => <>{v.render()}</>)}
+                {menuItems}
             </div>
         );
     }

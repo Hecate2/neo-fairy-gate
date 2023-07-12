@@ -263,7 +263,7 @@ class ManageContracts extends Component{
         return (
             <div className="ManageContracts" id="manageContracts">
                 {contracts.map((singleContract) => (
-                    <p>{singleContract.render()}</p>
+                    <div key={singleContract.props.name}>{singleContract.render()}</div>
                 ))}
             </div>
         );
