@@ -1,5 +1,15 @@
 Node.js version v18.13.0.
 
+Objectives:
+
+- Can be statically deployed (with github pages, etc.). All the state changes shall be stored in `localstorage` of browser, or an external file.
+- Can invoke contracts for testing & debugging with low-code.
+  - Trees of session execution for testing
+  - View of source codes & value of variables, for debugging
+- ...?
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
